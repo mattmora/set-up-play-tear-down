@@ -20,7 +20,6 @@ public class AudioManager : MonoBehaviour
     {
         Services.audioManager = this;
         sequences = new();
-        mergedComponentProgress = new Dictionary<long, int>();
     }
 
     // Start is called before the first frame update
@@ -35,44 +34,23 @@ public class AudioManager : MonoBehaviour
         if (!running)
             return;
 
-        ComputeConnectedComponents();
-
-        Dictionary<long, int> cache = new(mergedComponentProgress);
+        double sample = AudioSettings.dspTime * sampleRate;
         int dataLen = data.Length / channels;
+        List<SampleSequence> cache = new(sequences);
+
         for (int i = 0; i < dataLen; i++)
         {
-            // for (int c = 0; c < channels; c++) 
-            // {
-            //     int s = i * channels + c;
-                float sample = 0f;
-                foreach (long label in cache.Keys)
+            for (int c = 0; c < channels; c++) 
+            {
+                int s = i * channels + c;
+                // int n = (i + 1) * channels + c;
+                data[s] = 0f;
+                foreach (SampleSequence sequence in cache) 
                 {
-                    List<long> process = new();
-                    int size = 0;
-                    foreach (long key in components.Keys)
-                    {
-                        if ((label & key) > 0)
-                        {
-                            size += components[key].Count;
-                            process.Add(key);
-                        }
-                    }
-                    if (size == 0) continue;
-                    int progress = cache[label] % size;
-                    int offset = 0;
-                    foreach (long key in process)
-                    {
-                        if (progress < components[key].Count + offset) sample += ColorToSample(components[key][progress - offset]) * gain;
-                        else offset += components[key].Count;
-                        components.Remove(key);
-                    }
-                    mergedComponentProgress[label]++;
+                    Color color = Services.textureManager.flat[sequence.Read()];
+                    data[s] += ColorToSample(color) * gain;
                 }
-                for (int c = 0; c < channels; c++) 
-                {
-                    data[i * channels + c] = sample;
-                }
-            // }
+            }
         }
     }
 
@@ -106,73 +84,4 @@ public class AudioManager : MonoBehaviour
         float phase = (norm.r * (norm.g == 0 ? 3f : 0f) + norm.g + norm.b * 2f) * PHASE_PART;
         return Mathf.Sin(phase) * amplitude;
     }   
-
-    private Dictionary<long, int> mergedComponentProgress;
-    private Dictionary<long, List<Color>> components;
-    private void ComputeConnectedComponents()
-    {
-        Dictionary<long, int> copy = new(mergedComponentProgress);
-        mergedComponentProgress = new Dictionary<long, int>();
-        components = new();
-        Color[] arr = Services.textureManager.flat;
-        int width = Services.textureManager.width;
-        long[] labels = new long[arr.Length];
-        long key = 1;
-        for (int i = 0; i < arr.Length; i++)
-        {
-            Color c = arr[i];
-            if (c.a == 0) continue;
-            int x = i % width;
-            int y = i / width;
-            long left = 0;
-            long up = 0;
-            if (x > 0) left = labels[x - 1 + y * width];
-            if (y > 0) up = labels[x + (y - 1) * width];
-            if (left > 0) 
-            {
-                // Both are colored
-                if (up > 0)
-                {
-                    // List<Color> merge = dict[up];
-                    // merge.AddRange(dict[left]);
-                    // merge.Add(c);
-                    // dict[left | up] = merge;
-                    // dict.Remove(left);
-                    // dict.Remove(up);
-                    long merge = left | up;
-                    components[merge] = new List<Color>() { c };
-                    mergedComponentProgress.Remove(left);
-                    mergedComponentProgress.Remove(up);
-                    mergedComponentProgress[merge] = 0;
-                }
-                // only left is colored
-                else 
-                {
-                    components[left].Add(c);
-                    labels[i] = left;
-                }
-            }
-            // only up is colored
-            else if (up > 0) 
-            {
-                components[up].Add(c);
-                labels[i] = up;
-            }
-            // neither is colored
-            else 
-            {
-                components[key] = new List<Color>() { c };
-                labels[i] = key;
-                mergedComponentProgress[key] = 0;
-                key *= 2;
-            }
-            foreach (long label in copy.Keys)
-            {
-                if (mergedComponentProgress.ContainsKey(label))
-                {
-                    mergedComponentProgress[label] = copy[label];
-                }
-            }
-        }
-    }
 }
