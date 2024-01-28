@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 
 /*
@@ -22,11 +23,14 @@ public class TextureManager : MonoBehaviour
 
     public Color[] flat;
 
-    public Sample[][] samples;
-
     public GameObject sequencePrefab;
 
     private List<Worker> workers;
+
+    private Color transparentBlack = new(0, 0, 0, 0);
+
+    public GameObject backgroundObject;
+    Texture2D background;
 
     private void Awake() 
     {
@@ -44,16 +48,25 @@ public class TextureManager : MonoBehaviour
         {
             filterMode = FilterMode.Point
         };
-        flat = new Color[width * height];
-        samples = new Sample[width][];
-        for (int i = 0; i < width; i++)
+        background = new(width, height)
         {
-            samples[i] = new Sample[height];
-        }
+            filterMode = FilterMode.Point
+        };
+        flat = new Color[width * height];
 
         ResetTexture();
 
         GetComponent<Renderer>().material.mainTexture = texture;
+        backgroundObject.GetComponent<Renderer>().material.mainTexture = background;
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                background.SetPixel(x, y, ((x + y) % 2) == 0 ? Color.white : Color.gray); 
+            }
+        }
+        background.Apply();
     }
 
     // Update is called once per frame
@@ -74,53 +87,15 @@ public class TextureManager : MonoBehaviour
 
         if (Input.GetMouseButtonUp(0))
         {
-            var makeSequence = Input.GetKey(KeyCode.S);
             int size = (Mathf.Abs(anchorPixel.x - mousePixel.x) + 1) * (Mathf.Abs(anchorPixel.y - mousePixel.y) + 1);
-            SampleSequence seq = null;
-            // if (makeSequence) 
-            // {
-            //     seq = Instantiate(sequencePrefab).GetComponent<SampleSequence>();
-            //     seq.Initialize(size);
-            // }
             Apply(anchorPixel, mousePixel, (x, y, rect) => {
                 int f = x + y * width;
                 int i = (x - rect.x) + (y - rect.y) * rect.width;
-                // if (makeSequence) 
-                // {
-                //     Vector3 p = new((x + 0.5f) / texture.width, (y + 0.5f) / texture.height, 1);
-                //     seq.line.SetPosition(i, mainCamera.ViewportToWorldPoint(p));
-                //     seq[i] = f;
-                // }
-                // if (Input.GetKey(KeyCode.D)) 
-                // {
-                    float phase = (float)i / size * 2f * Mathf.PI;
-                    SetPixel(x, y, AudioManager.PhaseAmpToColor(phase, 1f));
-                // }
+
+                float phase = (float)i / size * 2f * Mathf.PI;
+                SetPixel(x, y, AudioManager.PhaseAmpToColor(phase, 1f));
             });
-            texture.Apply();
         }
-
-        // Vector3 cursorPosition = new((float)x / texture.width, (float)y / texture.height, 1);
-        // Debug.Log(cursorPosition);
-        // Services.cursor.transform.position = mainCamera.ViewportToWorldPoint(cursorPosition);
-
-        //for (int y = 0; y < texture.height; y++)
-        //{
-        //    for (int x = 0; x < texture.width; x++)
-        //    {
-        //        int camX = (int)(((float)x / texture.width) * camTextures[currentCam].width);
-        //        int camY = (int)(((float)y / texture.height) * camTextures[currentCam].height);
-        //        Vector2Int pos = new Vector2Int(x, y);
-        //        if (playerPixels.Contains(pos))
-        //        {
-        //            texture.SetPixel(x, y, playerColors[pos]);
-        //        }
-        //        else
-        //        {
-        //            texture.SetPixel(x, y, camActive ? camTextures[currentCam].GetPixel(camX, camY) : Color.black);
-        //        }
-        //    }
-        //}
     }
 
     private void SetPixel(int x, int y, Color c)
@@ -140,6 +115,7 @@ public class TextureManager : MonoBehaviour
         for (int x = xStart; x <= xEnd; x++)
             for (int y = yStart; y <= yEnd; y++)
                 action(x, y, new RectInt(xStart, yStart, w, h));
+        texture.Apply();
     }
 
     // private void SetArea(Vector2Int from, Vector2Int to, Color c, bool apply = true) => SetArea(from, to, (x, y, rect) => c, apply);
@@ -154,7 +130,8 @@ public class TextureManager : MonoBehaviour
     {
         Apply(from, to, (x, y, rect) => 
         {
-            SetPixel(x, y, ((x + y) % 2) == 0 ? Color.white : Color.gray); 
+            SetPixel(x, y, transparentBlack); 
+            // SetPixel(x, y, ((x + y) % 2) == 0 ? Color.white : Color.gray); 
         });
     } 
 }
