@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using ConnectedComponentLabeling;
 using UnityEngine;
 
 /*
@@ -22,11 +23,17 @@ public class TextureManager : MonoBehaviour
 
     public Color[] flat;
 
+    public Sample[][] samples;
+
     public GameObject sequencePrefab;
 
     public Renderer background;
 
     private List<Worker> workers;
+
+    private CCLBlobDetector ccl = new();
+
+    public List<List<int>> blobs = new();
 
     private void Awake() 
     {
@@ -46,11 +53,16 @@ public class TextureManager : MonoBehaviour
         };
         
         flat = new Color[width * height];
+        samples = new Sample[width][];
+        Array.Fill(samples, new Sample[height]);
+
+        ccl.Initialize(texture);
 
         ResetTexture();
 
         GetComponent<Renderer>().material.mainTexture = texture;
 
+        // Background texture setup
         var backgroundTexture = new Texture2D(width, height)
         {
             filterMode = FilterMode.Point
@@ -75,7 +87,9 @@ public class TextureManager : MonoBehaviour
         }
 
         Vector3 viewportPos = mainCamera.ScreenToViewportPoint(Input.mousePosition);
-        Vector2Int mousePixel = new((int)(viewportPos.x * texture.width), (int)(viewportPos.y * texture.height));
+        int mouseX = Mathf.Clamp((int)(viewportPos.x * texture.width), 0, width - 1);
+        int mouseY = Mathf.Clamp((int)(viewportPos.y * texture.height), 0, height - 1);
+        Vector2Int mousePixel = new(mouseX, mouseY);
 
         if (Input.GetMouseButtonDown(0)) 
         {
@@ -86,26 +100,26 @@ public class TextureManager : MonoBehaviour
         {
             var makeSequence = Input.GetKey(KeyCode.S);
             int size = (Mathf.Abs(anchorPixel.x - mousePixel.x) + 1) * (Mathf.Abs(anchorPixel.y - mousePixel.y) + 1);
-            SampleSequence seq = null;
-            if (makeSequence) 
-            {
-                seq = Instantiate(sequencePrefab).GetComponent<SampleSequence>();
-                seq.Initialize(size);
-            }
+            // SampleSequence seq = null;
+            // if (makeSequence) 
+            // {
+            //     seq = Instantiate(sequencePrefab).GetComponent<SampleSequence>();
+            //     seq.Initialize(size);
+            // }
             Apply(anchorPixel, mousePixel, (x, y, rect) => {
                 int f = x + y * width;
                 int i = (x - rect.x) + (y - rect.y) * rect.width;
-                if (makeSequence) 
-                {
-                    Vector3 p = new((x + 0.5f) / texture.width, (y + 0.5f) / texture.height, 1);
-                    seq.line.SetPosition(i, mainCamera.ViewportToWorldPoint(p));
-                    seq[i] = f;
-                }
-                if (Input.GetKey(KeyCode.D)) 
-                {
+                // if (makeSequence) 
+                // {
+                //     Vector3 p = new((x + 0.5f) / texture.width, (y + 0.5f) / texture.height, 1);
+                //     seq.line.SetPosition(i, mainCamera.ViewportToWorldPoint(p));
+                //     seq[i] = f;
+                // }
+                // if (Input.GetKey(KeyCode.D)) 
+                // {
                     float phase = (float)i / size * 2f * Mathf.PI;
                     SetPixel(x, y, AudioManager.PhaseAmpToColor(phase, 1f));
-                }
+                // }
             });
             texture.Apply();
         }
@@ -133,10 +147,19 @@ public class TextureManager : MonoBehaviour
         //}
     }
 
-    private void SetPixel(int x, int y, Color c)
+    private Color SetPixel(int x, int y, Color c)
     {
         texture.SetPixel(x, y, c);
         flat[x + y * width] = c;
+        ccl.SetPixel(x, y, c.a > 0);
+        return c;
+    }
+
+    public Color GetPixel(int x, int y) => texture.GetPixel(x, y);
+
+    private void SetSample(int x, int y, Color c)
+    {
+        samples[x][y] = new Sample(c);
     }
 
     private void Apply(Vector2Int from, Vector2Int to, Action<int, int, RectInt> action)
@@ -147,9 +170,24 @@ public class TextureManager : MonoBehaviour
         int yEnd = Math.Max(from.y, to.y);
         int w = xEnd - xStart + 1;
         int h = yEnd - yStart + 1;
+        RectInt rect = new(xStart, yStart, w, h);
         for (int x = xStart; x <= xEnd; x++)
+        {
             for (int y = yStart; y <= yEnd; y++)
-                action(x, y, new RectInt(xStart, yStart, w, h));
+            {
+               action(x, y, rect);
+            }
+        }
+        blobs = ccl.GetBlobs();
+        // int i = 0;
+        // foreach (var blob in blobs)
+        // {
+        //     foreach (int pixel in blob)
+        //     {
+        //         Debug.Log($"{i} {pixel}");
+        //     }
+        //     i++;
+        // }
     }
 
     // private void SetArea(Vector2Int from, Vector2Int to, Color c, bool apply = true) => SetArea(from, to, (x, y, rect) => c, apply);
@@ -166,6 +204,7 @@ public class TextureManager : MonoBehaviour
         Apply(from, to, (x, y, rect) => 
         {
             SetPixel(x, y, t); 
+            SetSample(x, y, t);
         });
     } 
 }

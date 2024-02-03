@@ -4,10 +4,12 @@ using UnityEngine;
 
 public class Sample
 {
-    public Vector2Int position;
-    public Sample next;
-    public Sample up;
-    public Sample down;
-    public Sample left;
-    public Sample right;
+    public float value;
+    public Color color;
+
+    public Sample(Color color)
+    {
+        this.color = color;
+        value = AudioManager.ColorToSample(color);
+    }
 }

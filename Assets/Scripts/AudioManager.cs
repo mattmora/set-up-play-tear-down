@@ -16,6 +16,9 @@ public class AudioManager : MonoBehaviour
 
     public List<SampleSequence> sequences;
 
+    private Dictionary<int, int> progress;
+    private HashSet<int> completed;
+
     private void Awake() 
     {
         Services.audioManager = this;
@@ -27,6 +30,8 @@ public class AudioManager : MonoBehaviour
     {
         sampleRate = AudioSettings.outputSampleRate;
         running = true;
+        progress = new();
+        completed = new();
     }
 
     void OnAudioFilterRead(float[] data, int channels)
@@ -34,22 +39,48 @@ public class AudioManager : MonoBehaviour
         if (!running)
             return;
 
-        double sample = AudioSettings.dspTime * sampleRate;
         int dataLen = data.Length / channels;
         List<SampleSequence> cache = new(sequences);
 
+        var texture = Services.textureManager;
+
+        // int xReturn = 0;
+        // for (int y = 0; y < texture.height; y++)
+        // {
+        //     for (int x = 0; x < texture.width; x++)
+        //     {
+        //         int i = x + y * texture.width;
+        //         if (completed.Contains(i)) continue;
+        //         completed.Add(i);
+        //         Color c = texture.GetPixel(x, y);
+        //         if (c.a == 0) continue;
+        //         int xAnchor = x;
+        //     }
+        // }
+
+        List<List<int>> blobs = new(texture.blobs);
+        // var blobs = texture.blobs;
         for (int i = 0; i < dataLen; i++)
         {
+            float sample = 0f;
+            for (int b = 0; b < blobs.Count; b++)
+            {
+                // List<int> blob = new(blobs[b]);
+                var blob = blobs[b];
+                if (!progress.TryGetValue(b, out int p))
+                {
+                    p = 0;
+                    progress[b] = 0;
+                }
+                Color color = texture.flat[blob[p % blob.Count]];
+                sample += ColorToSample(color) * gain;
+                progress[b] = (p + 1) % blob.Count;
+            }
+
             for (int c = 0; c < channels; c++) 
             {
                 int s = i * channels + c;
-                // int n = (i + 1) * channels + c;
-                data[s] = 0f;
-                foreach (SampleSequence sequence in cache) 
-                {
-                    Color color = Services.textureManager.flat[sequence.Read()];
-                    data[s] += ColorToSample(color) * gain;
-                }
+                data[s] = sample;
             }
         }
     }
@@ -72,6 +103,7 @@ public class AudioManager : MonoBehaviour
 
     public static float ColorToSample(Color c) 
     {
+        if (c.a == 0) return 0f;
         // Color.RGBToHSV(c, out float H, out float S, out float V);
         // return Mathf.Sin(H * 2 * Mathf.PI) * S;
         float dcOffset = Mathf.Min(c.r, c.g, c.b);
