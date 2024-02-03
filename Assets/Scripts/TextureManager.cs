@@ -29,7 +29,7 @@ public class TextureManager : MonoBehaviour
 
     public Renderer background;
 
-    private List<Worker> workers;
+    public List<Worker> workers = new List<Worker>();
 
     private CCLBlobDetector ccl = new();
 

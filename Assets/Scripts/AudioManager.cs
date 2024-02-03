@@ -114,6 +114,6 @@ public class AudioManager : MonoBehaviour
         if (amplitude == 0) return 0f;
         Color norm = c / amplitude;
         float phase = (norm.r * (norm.g == 0 ? 3f : 0f) + norm.g + norm.b * 2f) * PHASE_PART;
-        return Mathf.Sin(phase) * amplitude;
+        return Mathf.Sin(phase) * amplitude * c.a;
     }   
 }
