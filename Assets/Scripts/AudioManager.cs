@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 
 public class AudioManager : MonoBehaviour
@@ -72,7 +71,8 @@ public class AudioManager : MonoBehaviour
                     p = 0;
                     progress[b] = 0;
                 }
-                Color color = texture.flat[blob[p % blob.Count]];
+                Color color = texture.pixels[blob[p % blob.Count]];
+                // Color color = Color.cyan;
                 sample += ColorToSample(color) * gain;
                 progress[b] = (p + 1) % blob.Count;
             }

@@ -268,7 +268,7 @@ GameObject:
   - component: {fileID: 325667240}
   - component: {fileID: 325667241}
   - component: {fileID: 325667243}
-  - component: {fileID: 325667242}
+  - component: {fileID: 325667244}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -303,7 +303,44 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a278649dd3cc2c144947433203ba8073, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &325667242
+--- !u!114 &325667243
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 325667237}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 593a2fe42fa9d37498c96f9a383b6521, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  NetworkConfig:
+    ProtocolVersion: 0
+    NetworkTransport: {fileID: 325667244}
+    PlayerPrefab: {fileID: 3328185161546595874, guid: 77f1e1256de19754fb1f63678372894f, type: 3}
+    Prefabs:
+      NetworkPrefabsLists:
+      - {fileID: 11400000, guid: 858d17ddf7ad07b4982c1fb0025a2e8d, type: 2}
+    TickRate: 30
+    ClientConnectionBufferTimeout: 10
+    ConnectionApproval: 0
+    ConnectionData: 
+    EnableTimeResync: 0
+    TimeResyncInterval: 30
+    EnsureNetworkVariableLengthSafety: 0
+    EnableSceneManagement: 1
+    ForceSamePrefabs: 1
+    RecycleNetworkIds: 1
+    NetworkIdRecycleDelay: 120
+    RpcHashSize: 0
+    LoadSceneTimeOut: 120
+    SpawnTimeout: 1
+    EnableNetworkLogs: 1
+    OldPrefabList: []
+  RunInBackground: 1
+  LogLevel: 1
+--- !u!114 &325667244
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -330,43 +367,6 @@ MonoBehaviour:
     PacketDelayMS: 0
     PacketJitterMS: 0
     PacketDropRate: 0
---- !u!114 &325667243
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 325667237}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 593a2fe42fa9d37498c96f9a383b6521, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  NetworkConfig:
-    ProtocolVersion: 0
-    NetworkTransport: {fileID: 325667242}
-    PlayerPrefab: {fileID: 7802695153550612225, guid: 77f1e1256de19754fb1f63678372894f, type: 3}
-    Prefabs:
-      NetworkPrefabsLists:
-      - {fileID: 11400000, guid: 858d17ddf7ad07b4982c1fb0025a2e8d, type: 2}
-    TickRate: 30
-    ClientConnectionBufferTimeout: 10
-    ConnectionApproval: 0
-    ConnectionData: 
-    EnableTimeResync: 0
-    TimeResyncInterval: 30
-    EnsureNetworkVariableLengthSafety: 0
-    EnableSceneManagement: 1
-    ForceSamePrefabs: 1
-    RecycleNetworkIds: 1
-    NetworkIdRecycleDelay: 120
-    RpcHashSize: 0
-    LoadSceneTimeOut: 120
-    SpawnTimeout: 1
-    EnableNetworkLogs: 1
-    OldPrefabList: []
-  RunInBackground: 1
-  LogLevel: 1
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -876,6 +876,7 @@ GameObject:
   - component: {fileID: 1218850012}
   - component: {fileID: 1218850011}
   - component: {fileID: 1218850015}
+  - component: {fileID: 1218850017}
   m_Layer: 0
   m_Name: Quad
   m_TagString: Untagged
@@ -983,11 +984,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1538014cdb361bc4bbedd177d671fdaf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  transparent: {r: 0, g: 0, b: 0, a: 0}
   width: 80
   height: 45
-  flat: []
+  texture: {fileID: 0}
   sequencePrefab: {fileID: 2403162008050399476, guid: 6b3babd56d27cb74796f4999ca5925fc, type: 3}
   background: {fileID: 538089774}
+  workers: []
+--- !u!114 &1218850017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1218850010}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GlobalObjectIdHash: 3900684458
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 0
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
 --- !u!1 &1858985879
 GameObject:
   m_ObjectHideFlags: 0

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using ConnectedComponentLabeling;
+using Unity.Netcode;
 using UnityEngine;
 
 /*
@@ -12,18 +13,21 @@ Alt patterns
 Networking.
 */
 
-public class TextureManager : MonoBehaviour
+public class TextureManager : NetworkBehaviour
 {
+    public Color transparent =  new(0, 0, 0, 0);
+
     public int width = 80; 
     public int height = 45;
 
     Camera mainCamera;
-    Texture2D texture;
+    public Texture2D texture;
     Vector2Int anchorPixel;
 
-    public Color[] flat;
+    [HideInInspector]
+    public NetworkList<Color> pixels;
 
-    public Sample[][] samples;
+    // public Sample[][] samples;
 
     public GameObject sequencePrefab;
 
@@ -38,27 +42,20 @@ public class TextureManager : MonoBehaviour
     private void Awake() 
     {
         Services.textureManager = this;
+        anchorPixel = new Vector2Int(-1, -1);
+        mainCamera = Camera.main;
+        InitializePixels();
     }
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
-        anchorPixel = new Vector2Int(-1, -1);
-
-        mainCamera = Camera.main;
-
         texture = new(width, height)
         {
             filterMode = FilterMode.Point
         };
-        
-        flat = new Color[width * height];
-        samples = new Sample[width][];
-        Array.Fill(samples, new Sample[height]);
 
         ccl.Initialize(texture);
-
-        ResetTexture();
 
         GetComponent<Renderer>().material.mainTexture = texture;
 
@@ -78,9 +75,38 @@ public class TextureManager : MonoBehaviour
         background.material.mainTexture = backgroundTexture;
     }
 
+    public void InitializePixels()
+    {
+        pixels?.Dispose();
+
+        Color[] colors = new Color[width * height];
+        Array.Fill(colors, transparent);
+        pixels = new NetworkList<Color>(colors);
+
+        pixels.Initialize(this);
+
+        pixels.OnListChanged += (listEvent) => {
+            if (NetworkManager.Singleton.IsServer) return;
+            int i = listEvent.Index;
+            texture.SetPixel(i % width, i / width, listEvent.Value);
+            texture.Apply();
+        };
+    }
+
+    public override void OnDestroy() {
+        pixels?.Dispose();
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        ResetTexture();
+    }
+
     // Update is called once per frame
     void Update()
     {
+        if (!NetworkManager.Singleton.IsServer) return;
+
         if (Input.GetKeyDown(KeyCode.C))
         {
             ResetTexture();
@@ -96,7 +122,7 @@ public class TextureManager : MonoBehaviour
             anchorPixel = mousePixel;
         }
 
-        if (Input.GetMouseButtonUp(0))
+        if (Input.GetMouseButtonUp(0) && anchorPixel.x >= 0)
         {
             var makeSequence = Input.GetKey(KeyCode.S);
             int size = (Mathf.Abs(anchorPixel.x - mousePixel.x) + 1) * (Mathf.Abs(anchorPixel.y - mousePixel.y) + 1);
@@ -120,10 +146,16 @@ public class TextureManager : MonoBehaviour
                     float phase = (float)i / size * 2f * Mathf.PI;
                     SetPixel(x, y, AudioManager.PhaseAmpToColor(phase, 1f));
                 // }
-            });
+            }, true);
             texture.Apply();
         }
 
+        // foreach (var worker in workers)
+        // {
+        //     SetPixel(worker.Position.Value.x, worker.Position.Value.y, Color.magenta);
+        // }
+        // texture.Apply();
+        
         // Vector3 cursorPosition = new((float)x / texture.width, (float)y / texture.height, 1);
         // Debug.Log(cursorPosition);
         // Services.cursor.transform.position = mainCamera.ViewportToWorldPoint(cursorPosition);
@@ -147,22 +179,26 @@ public class TextureManager : MonoBehaviour
         //}
     }
 
-    private Color SetPixel(int x, int y, Color c)
+    public Color SetPixel(int x, int y, Color c)
     {
         texture.SetPixel(x, y, c);
-        flat[x + y * width] = c;
+        if (NetworkManager.Singleton.IsServer) 
+        {
+            // Debug.Log(pixels != null);
+            pixels[x + y * width] = c;
+        }
         ccl.SetPixel(x, y, c.a > 0);
         return c;
     }
 
     public Color GetPixel(int x, int y) => texture.GetPixel(x, y);
 
-    private void SetSample(int x, int y, Color c)
-    {
-        samples[x][y] = new Sample(c);
-    }
+    // private void SetSample(int x, int y, Color c)
+    // {
+    //     samples[x][y] = new Sample(c);
+    // }
 
-    private void Apply(Vector2Int from, Vector2Int to, Action<int, int, RectInt> action)
+    public void Apply(Vector2Int from, Vector2Int to, Action<int, int, RectInt> action, bool updateBlobs = false)
     {
         int xStart = Math.Min(from.x, to.x);
         int xEnd = Math.Max(from.x, to.x);
@@ -178,7 +214,7 @@ public class TextureManager : MonoBehaviour
                action(x, y, rect);
             }
         }
-        blobs = ccl.GetBlobs();
+        if (updateBlobs) UpdateBlobs();
         // int i = 0;
         // foreach (var blob in blobs)
         // {
@@ -190,6 +226,11 @@ public class TextureManager : MonoBehaviour
         // }
     }
 
+    public void UpdateBlobs()
+    {
+        blobs = ccl.GetBlobs();
+    }
+
     // private void SetArea(Vector2Int from, Vector2Int to, Color c, bool apply = true) => SetArea(from, to, (x, y, rect) => c, apply);
 
     private void ResetTexture() 
@@ -198,13 +239,13 @@ public class TextureManager : MonoBehaviour
         texture.Apply();
     } 
 
-    private void ResetArea(Vector2Int from, Vector2Int to) 
+    public void ResetArea(Vector2Int from, Vector2Int to) => SetArea(from, to, transparent);
+
+    public void SetArea(Vector2Int from, Vector2Int to, Color c)
     {
-        Color t = new Color(0, 0, 0, 0);
         Apply(from, to, (x, y, rect) => 
         {
-            SetPixel(x, y, t); 
-            SetSample(x, y, t);
+            SetPixel(x, y, c); 
         });
-    } 
+    }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 public class Cursor : MonoBehaviour
@@ -26,8 +27,15 @@ public class Cursor : MonoBehaviour
 
     private void UpdatePosition() 
     {
-        Vector3 mouse = Input.mousePosition;
-        mouse.z = 1;
-        transform.position = mainCamera.ScreenToWorldPoint(mouse);
+        if (NetworkManager.Singleton.IsServer)
+        {
+            Vector3 mouse = Input.mousePosition;
+            mouse.z = 1;
+            transform.position = mainCamera.ScreenToWorldPoint(mouse);
+        }
+        else 
+        {
+            transform.position = Vector3.one * -1000;
+        }
     }
 }

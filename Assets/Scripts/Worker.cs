@@ -6,6 +6,16 @@ using Unity.Netcode;
 public class Worker : NetworkBehaviour
 {
     public NetworkVariable<Vector2Int> Position = new NetworkVariable<Vector2Int>();
+    public Vector2Int readPosition;
+    public Vector2Int size;
+    public Color color;
+
+    private void Awake() 
+    {
+        Position.OnValueChanged += (previousValue, newValue) => {
+            readPosition = newValue;
+        };
+    }
 
     public override void OnNetworkSpawn()
     {
@@ -21,11 +31,11 @@ public class Worker : NetworkBehaviour
         var position = GetRandomPosition();
         if (NetworkManager.Singleton.IsServer)
         {
-            Position.Value = position;
+            ExecutePlace(position);
         }
         else
         {
-            SubmitPositionRequestServerRpc(position);
+            SubmitPlaceRequestServerRpc(position);
         }
     }
 
@@ -34,7 +44,7 @@ public class Worker : NetworkBehaviour
         var move = new Vector2Int(x, y);
         if (NetworkManager.Singleton.IsServer)
         {
-            Position.Value += move;
+            ExecuteMove(move);
         }
         else
         {
@@ -42,16 +52,49 @@ public class Worker : NetworkBehaviour
         }
     }
 
-    [ServerRpc]
-    void SubmitPositionRequestServerRpc(Vector2Int position, ServerRpcParams rpcParams = default)
-    {
-        Position.Value = position;
+    private void Update() {
+        if (!IsOwner) return;
+        if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            Move(0, 1);
+        }
+        if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            Move(0, -1);
+        }
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            Move(-1, 0);
+        }
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            Move(1, 0);
+        }
     }
 
     [ServerRpc]
-    void SubmitMoveRequestServerRpc(Vector2Int move, ServerRpcParams rpcParams = default)
+    void SubmitPlaceRequestServerRpc(Vector2Int position, ServerRpcParams rpcParams = default) => ExecutePlace(position);
+
+    private void ExecutePlace(Vector2Int position)
     {
+        Services.textureManager.ResetArea(Position.Value, Position.Value + size - Vector2Int.one);
+        Position.Value = position;
+        Services.textureManager.SetArea(Position.Value, Position.Value + size - Vector2Int.one, color);
+        Services.textureManager.texture.Apply();
+        if (NetworkManager.Singleton.IsServer) Services.textureManager.UpdateBlobs();
+    }
+
+
+    [ServerRpc]
+    void SubmitMoveRequestServerRpc(Vector2Int move, ServerRpcParams rpcParams = default) => ExecuteMove(move);
+
+    private void ExecuteMove(Vector2Int move)
+    {
+        Services.textureManager.ResetArea(Position.Value, Position.Value + size - Vector2Int.one);
         Position.Value += move;
+        Services.textureManager.SetArea(Position.Value, Position.Value + size - Vector2Int.one, color);
+        Services.textureManager.texture.Apply();
+        if (NetworkManager.Singleton.IsServer) Services.textureManager.UpdateBlobs();
     }
 
     static Vector2Int GetRandomPosition()
