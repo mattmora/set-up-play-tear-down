@@ -19,11 +19,17 @@ public class Worker : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        Services.textureManager.workers.Add(this);
         if (IsOwner)
         {
-            Place();
+            StartCoroutine(PlaceRoutine());
         }
+    }
+
+    private IEnumerator PlaceRoutine()
+    {
+        if (!Services.textureManager.IsSpawned)
+            yield return new WaitUntil(() => Services.textureManager.IsSpawned);
+        Place();
     }
 
     public void Place()
@@ -44,10 +50,12 @@ public class Worker : NetworkBehaviour
         var move = new Vector2Int(x, y);
         if (NetworkManager.Singleton.IsServer)
         {
+            // Debug.Log("Server Move");
             ExecuteMove(move);
         }
         else
         {
+            // Debug.Log("Client Move");
             SubmitMoveRequestServerRpc(move);
         }
     }
@@ -72,12 +80,12 @@ public class Worker : NetworkBehaviour
         }
     }
 
-    [ServerRpc]
-    void SubmitPlaceRequestServerRpc(Vector2Int position, ServerRpcParams rpcParams = default) => ExecutePlace(position);
+    [Rpc(SendTo.Server)]
+    void SubmitPlaceRequestServerRpc(Vector2Int position) => ExecutePlace(position);
 
     private void ExecutePlace(Vector2Int position)
     {
-        Services.textureManager.ResetArea(Position.Value, Position.Value + size - Vector2Int.one);
+        // Services.textureManager.ResetArea(Position.Value, Position.Value + size - Vector2Int.one);
         Position.Value = position;
         Services.textureManager.SetArea(Position.Value, Position.Value + size - Vector2Int.one, color);
         Services.textureManager.texture.Apply();
@@ -85,22 +93,22 @@ public class Worker : NetworkBehaviour
     }
 
 
-    [ServerRpc]
-    void SubmitMoveRequestServerRpc(Vector2Int move, ServerRpcParams rpcParams = default) => ExecuteMove(move);
+    [Rpc(SendTo.Server)]
+    void SubmitMoveRequestServerRpc(Vector2Int move) => ExecuteMove(move);
 
     private void ExecuteMove(Vector2Int move)
     {
         Services.textureManager.ResetArea(Position.Value, Position.Value + size - Vector2Int.one);
-        Position.Value += move;
+        Position.Value = new Vector2Int(Mathf.Clamp(Position.Value.x + move.x, 0, 100), Mathf.Clamp(Position.Value.y + move.y, 0, 100));
         Services.textureManager.SetArea(Position.Value, Position.Value + size - Vector2Int.one, color);
         Services.textureManager.texture.Apply();
         if (NetworkManager.Singleton.IsServer) Services.textureManager.UpdateBlobs();
     }
 
-    static Vector2Int GetRandomPosition()
+    private Vector2Int GetRandomPosition()
     {
-        int w = Services.textureManager.width;
-        int h = Services.textureManager.height;
+        int w = Services.textureManager.width - size.x;
+        int h = Services.textureManager.height - size.y;
         return new Vector2Int(Random.Range(0, w), Random.Range(0, h));
     }
 }

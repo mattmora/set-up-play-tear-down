@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using ConnectedComponentLabeling;
@@ -24,16 +23,16 @@ public class TextureManager : NetworkBehaviour
     public Texture2D texture;
     Vector2Int anchorPixel;
 
-    [HideInInspector]
-    public NetworkList<Color> pixels;
-
+    // [HideInInspector]
+    // public NetworkVariable<Color>[] pixels;
+    public Color[] pixels;
+    public float[] samples;
+    // public NetworkPixels pixels;
     // public Sample[][] samples;
 
     public GameObject sequencePrefab;
 
     public Renderer background;
-
-    public List<Worker> workers = new List<Worker>();
 
     private CCLBlobDetector ccl = new();
 
@@ -44,12 +43,7 @@ public class TextureManager : NetworkBehaviour
         Services.textureManager = this;
         anchorPixel = new Vector2Int(-1, -1);
         mainCamera = Camera.main;
-        InitializePixels();
-    }
 
-    // Start is called before the first frame update
-    private void Start()
-    {
         texture = new(width, height)
         {
             filterMode = FilterMode.Point
@@ -73,39 +67,66 @@ public class TextureManager : NetworkBehaviour
         }
         backgroundTexture.Apply();
         background.material.mainTexture = backgroundTexture;
+
+        InitializePixels();
     }
 
     public void InitializePixels()
     {
-        pixels?.Dispose();
+        pixels = new Color[width * height];
+        samples = new float[width * height];
+        // pixels = new NetworkPixels(width * height, this);
+        // Debug.Log("Init");
+        // pixels = new NetworkVariable<Color>[width * height];
 
-        Color[] colors = new Color[width * height];
-        Array.Fill(colors, transparent);
-        pixels = new NetworkList<Color>(colors);
-
-        pixels.Initialize(this);
-
-        pixels.OnListChanged += (listEvent) => {
-            if (NetworkManager.Singleton.IsServer) return;
-            int i = listEvent.Index;
-            texture.SetPixel(i % width, i / width, listEvent.Value);
-            texture.Apply();
-        };
-    }
-
-    public override void OnDestroy() {
-        pixels?.Dispose();
+        // for (int i = 0; i < pixels.Length; i++)
+        // {
+        //     pixels[i] = new NetworkVariable<Color>();
+        //     pixels[i].Initialize(this);
+        //     if (!NetworkManager.Singleton.IsServer)
+        //     {
+        //         int p = i;
+        //         pixels[i].OnValueChanged += (previousValue, newValue) => {
+        //             // Debug.Log(i);
+        //             texture.SetPixel(p % width, p / width, newValue);
+        //             // Debug.Log($"{p % width}, {p / width}, {newValue}");
+        //         };
+        //     }
+        // }
     }
 
     public override void OnNetworkSpawn()
     {
+        Debug.Log("Texture spawn");
         ResetTexture();
+    }
+
+    [Rpc(SendTo.NotServer)]
+    public void DrawRpc(Vector2Int from, Vector2Int to, Color[] pixels)
+    {
+        Debug.Log("Draw");
+        Apply(from, to, (x, y, rect, i) => {
+            Color c = pixels[i];
+            SetPixel(x, y, c);
+            return c;
+        });
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (!NetworkManager.Singleton.IsServer) return;
+        if (!NetworkManager.Singleton.IsServer) 
+        {   
+            // for (int x = 0; x < width; x++)
+            // {
+            //     for (int y = 0; y < height; y++)
+            //     {
+            //         SetPixel(x, y, pixels[x + y * width].Value);
+            //     }
+            // }
+            texture.Apply();
+            return;
+        }
 
         if (Input.GetKeyDown(KeyCode.C))
         {
@@ -132,9 +153,8 @@ public class TextureManager : NetworkBehaviour
             //     seq = Instantiate(sequencePrefab).GetComponent<SampleSequence>();
             //     seq.Initialize(size);
             // }
-            Apply(anchorPixel, mousePixel, (x, y, rect) => {
+            Apply(anchorPixel, mousePixel, (x, y, rect, i) => {
                 int f = x + y * width;
-                int i = (x - rect.x) + (y - rect.y) * rect.width;
                 // if (makeSequence) 
                 // {
                 //     Vector3 p = new((x + 0.5f) / texture.width, (y + 0.5f) / texture.height, 1);
@@ -144,51 +164,27 @@ public class TextureManager : NetworkBehaviour
                 // if (Input.GetKey(KeyCode.D)) 
                 // {
                     float phase = (float)i / size * 2f * Mathf.PI;
-                    SetPixel(x, y, AudioManager.PhaseAmpToColor(phase, 1f));
+                    Color c = AudioManager.PhaseAmpToColor(phase, 1f);
+                    SetPixel(x, y, c);
+                    return c;
                 // }
             }, true);
-            texture.Apply();
+            
         }
-
-        // foreach (var worker in workers)
-        // {
-        //     SetPixel(worker.Position.Value.x, worker.Position.Value.y, Color.magenta);
-        // }
-        // texture.Apply();
-        
-        // Vector3 cursorPosition = new((float)x / texture.width, (float)y / texture.height, 1);
-        // Debug.Log(cursorPosition);
-        // Services.cursor.transform.position = mainCamera.ViewportToWorldPoint(cursorPosition);
-
-        //for (int y = 0; y < texture.height; y++)
-        //{
-        //    for (int x = 0; x < texture.width; x++)
-        //    {
-        //        int camX = (int)(((float)x / texture.width) * camTextures[currentCam].width);
-        //        int camY = (int)(((float)y / texture.height) * camTextures[currentCam].height);
-        //        Vector2Int pos = new Vector2Int(x, y);
-        //        if (playerPixels.Contains(pos))
-        //        {
-        //            texture.SetPixel(x, y, playerColors[pos]);
-        //        }
-        //        else
-        //        {
-        //            texture.SetPixel(x, y, camActive ? camTextures[currentCam].GetPixel(camX, camY) : Color.black);
-        //        }
-        //    }
-        //}
+        texture.Apply();
     }
 
-    public Color SetPixel(int x, int y, Color c)
+    private void SetPixel(int x, int y, Color c)
     {
         texture.SetPixel(x, y, c);
         if (NetworkManager.Singleton.IsServer) 
         {
             // Debug.Log(pixels != null);
-            pixels[x + y * width] = c;
+            int i = x + y * width;
+            pixels[i] = c;
+            samples[i] = AudioManager.ColorToSample(c);
+            ccl.SetPixel(x, y, c.a > 0);
         }
-        ccl.SetPixel(x, y, c.a > 0);
-        return c;
     }
 
     public Color GetPixel(int x, int y) => texture.GetPixel(x, y);
@@ -198,23 +194,34 @@ public class TextureManager : NetworkBehaviour
     //     samples[x][y] = new Sample(c);
     // }
 
-    public void Apply(Vector2Int from, Vector2Int to, Action<int, int, RectInt> action, bool updateBlobs = false)
+    public void Apply(Vector2Int from, Vector2Int to, System.Func<int, int, RectInt, int, Color> action, bool updateBlobs = false)
     {
-        int xStart = Math.Min(from.x, to.x);
-        int xEnd = Math.Max(from.x, to.x);
-        int yStart = Math.Min(from.y, to.y);
-        int yEnd = Math.Max(from.y, to.y);
+        Debug.Log($"{from} {to}");
+        int xStart = Mathf.Clamp(Mathf.Min(from.x, to.x), 0, width - 1);
+        int xEnd =  Mathf.Clamp(Mathf.Max(from.x, to.x), 0, width - 1);
+        int yStart =  Mathf.Clamp(Mathf.Min(from.y, to.y), 0, height - 1);
+        int yEnd =  Mathf.Clamp(Mathf.Max(from.y, to.y), 0, height - 1);
         int w = xEnd - xStart + 1;
         int h = yEnd - yStart + 1;
         RectInt rect = new(xStart, yStart, w, h);
-        for (int x = xStart; x <= xEnd; x++)
+        Color[] colors = new Color[w * h];
+        int i = 0;
+
+        for (int y = yStart; y <= yEnd; y++)
         {
-            for (int y = yStart; y <= yEnd; y++)
-            {
-               action(x, y, rect);
+            for (int x = xStart; x <= xEnd; x++)
+            {   
+               colors[i] = action(x, y, rect, i);
+               i++;
             }
         }
+
         if (updateBlobs) UpdateBlobs();
+        if (NetworkManager.Singleton.IsServer) 
+        {
+            Debug.Log("server");
+            DrawRpc(from, to, colors);
+        }
         // int i = 0;
         // foreach (var blob in blobs)
         // {
@@ -243,9 +250,10 @@ public class TextureManager : NetworkBehaviour
 
     public void SetArea(Vector2Int from, Vector2Int to, Color c)
     {
-        Apply(from, to, (x, y, rect) => 
+        Apply(from, to, (x, y, rect, i) => 
         {
             SetPixel(x, y, c); 
+            return c;
         });
     }
 }

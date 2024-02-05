@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using Unity.Netcode;
 using UnityEngine;
 
 public class AudioManager : MonoBehaviour
@@ -38,10 +40,13 @@ public class AudioManager : MonoBehaviour
         if (!running)
             return;
 
+        if (!NetworkManager.Singleton.IsServer) return;
+
         int dataLen = data.Length / channels;
         List<SampleSequence> cache = new(sequences);
 
         var texture = Services.textureManager;
+        if (texture == null) return;
 
         // int xReturn = 0;
         // for (int y = 0; y < texture.height; y++)
@@ -57,30 +62,60 @@ public class AudioManager : MonoBehaviour
         //     }
         // }
 
-        List<List<int>> blobs = new(texture.blobs);
-        // var blobs = texture.blobs;
+        // Determine applicable progress
+        List<List<int>> blobs = new();
+        HashSet<int> firstPixels = new();
+        int[] p = new int[texture.blobs.Count];
+        for (int b = 0; b < texture.blobs.Count; b++)
+        {
+            blobs.Add(new(texture.blobs[b]));
+            var blob = blobs[b];
+            firstPixels.Add(blob[0]);
+            int indexKey = -b - 1;
+            // Check progress by first pixel first
+            if (!progress.TryGetValue(blob[0], out int p1))
+            {
+                // Then check by blob index
+                if (!progress.TryGetValue(indexKey, out int p2))
+                {
+                    p2 = 0;
+                    progress[indexKey] = p2;
+                }
+                p1 = p2;
+                progress[blob[0]] = p1;
+            }
+            p[b] = p1;
+        }
+
         for (int i = 0; i < dataLen; i++)
         {
             float sample = 0f;
             for (int b = 0; b < blobs.Count; b++)
             {
-                // List<int> blob = new(blobs[b]);
                 var blob = blobs[b];
-                if (!progress.TryGetValue(b, out int p))
-                {
-                    p = 0;
-                    progress[b] = 0;
-                }
-                Color color = texture.pixels[blob[p % blob.Count]];
-                // Color color = Color.cyan;
-                sample += ColorToSample(color) * gain;
-                progress[b] = (p + 1) % blob.Count;
+                int indexKey = -b - 1;
+                // Color color = texture.pixels[blob[p % blob.Count]];
+                // sample += ColorToSample(color) * gain;
+                sample += texture.samples[blob[p[b] % blob.Count]] * gain;
+                int next = (p[b] + 1) % blob.Count;
+                progress[blob[0]] = next;
+                progress[indexKey] = next;
+                p[b] = next;
             }
 
             for (int c = 0; c < channels; c++) 
             {
                 int s = i * channels + c;
                 data[s] = sample;
+            }
+        }
+
+        var keys = progress.Keys.ToArray();
+        foreach (var key in keys)
+        {
+            if (!firstPixels.Contains(key) && key >= 0)
+            {
+                progress.Remove(key);
             }
         }
     }
