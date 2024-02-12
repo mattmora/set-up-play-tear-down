@@ -1,33 +1,74 @@
+using System.Linq;
+using System.Net;
+using TMPro;
 using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class NetworkSelector : MonoBehaviour
 {
-    void OnGUI()
-    {
-        GUILayout.BeginArea(new Rect(10, 10, 300, 300));
-        GUI.backgroundColor = Color.white;
-        if (!NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsServer)
-        {
-            StartButtons();
-        }
-        else
-        {
-            // StatusLabels();
-            // SubmitNewPosition();
-        }
+    public GameObject panel;
+    public TMP_Text localIP;
+    public TMP_InputField portInput;
+    public Button hostButton;
+    public TMP_InputField hostIPInput;
+    public Button joinButton;
 
-        GUILayout.EndArea();
+    private bool hidden;
+
+    private void Awake() {
+        localIP.text = GetLocalIPv4();
+        hostButton.onClick.AddListener(() => {
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(localIP.text, ushort.Parse(portInput.text));
+            NetworkManager.Singleton.StartHost();
+        });
+        joinButton.onClick.AddListener(() => {
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(hostIPInput.text, ushort.Parse(portInput.text));
+            NetworkManager.Singleton.StartClient();
+        });
     }
 
-    static void StartButtons()
-    {
-        if (GUILayout.Button("Server")) NetworkManager.Singleton.StartServer();
-        if (GUILayout.Button("Host")) NetworkManager.Singleton.StartHost();
-        if (GUILayout.Button("Client")) NetworkManager.Singleton.StartClient();
+    private void Update() {
+        if (Input.GetKeyDown(KeyCode.I))
+        {
+            hidden = !hidden;
+        }
+
+        bool lobby = !NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsServer;
+        bool hosting = NetworkManager.Singleton.IsServer;
+
+        panel.SetActive((hosting && !hidden) || lobby);
+        portInput.gameObject.SetActive(lobby);
+        hostButton.gameObject.SetActive(lobby);
+        hostIPInput.gameObject.SetActive(lobby);
+        joinButton.gameObject.SetActive(lobby);
     }
 
-    static void StatusLabels()
+    void StartButtons()
+    {
+        // if (GUILayout.Button("Server")) NetworkManager.Singleton.StartServer();
+        // if (GUILayout.Button("Host")) 
+        // {
+        //     NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(GetLocalIPv4(), ushort.Parse(port));
+        //     NetworkManager.Singleton.StartHost();
+        // }
+        // if (GUILayout.Button("Client")) 
+        // {
+        //     NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(ip, ushort.Parse(port));
+        //     NetworkManager.Singleton.StartClient();
+        // }
+        // ip = GUILayout.TextField(ip);
+    }
+
+    public string GetLocalIPv4()
+    {
+        return Dns.GetHostEntry(Dns.GetHostName()).AddressList.First(
+            f => f.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+            .ToString();
+    }
+
+    void StatusLabels()
     {
         var mode = NetworkManager.Singleton.IsHost ?
             "Host" : NetworkManager.Singleton.IsServer ? "Server" : "Client";
@@ -37,7 +78,7 @@ public class NetworkSelector : MonoBehaviour
         GUILayout.Label("Mode: " + mode);
     }
 
-    static void SubmitNewPosition()
+    void SubmitNewPosition()
     {
         if (GUILayout.Button(NetworkManager.Singleton.IsServer ? "Move" : "Request Position Change"))
         {
