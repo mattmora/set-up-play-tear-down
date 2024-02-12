@@ -9,7 +9,7 @@ using UnityEngine.UI;
 public class NetworkSelector : MonoBehaviour
 {
     public GameObject panel;
-    public TMP_Text localIP;
+    public TMP_InputField localIP;
     public TMP_InputField portInput;
     public Button hostButton;
     public TMP_InputField hostIPInput;
@@ -63,9 +63,14 @@ public class NetworkSelector : MonoBehaviour
 
     public string GetLocalIPv4()
     {
-        return Dns.GetHostEntry(Dns.GetHostName()).AddressList.First(
-            f => f.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-            .ToString();
+        try {
+            return Dns.GetHostEntry(Dns.GetHostName()).AddressList.First(
+                f => f.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                .ToString();
+        }
+        catch {
+            return "Failed to get IP. Enter manually to host.";
+        }
     }
 
     void StatusLabels()
