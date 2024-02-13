@@ -45,39 +45,62 @@ public class Worker : NetworkBehaviour
         }
     }
 
-    public void Move(int x, int y, bool shift)
+    public void Move(int x, int y, int growX, int growY, bool shift)
     {
         var move = new Vector2Int(x, y);
+        var grow = new Vector2Int(growX, growY);
         if (NetworkManager.Singleton.IsServer)
         {
             // Debug.Log("Server Move");
-            ExecuteMove(move, shift);
+            ExecuteMove(move, grow, shift);
         }
         else
         {
             // Debug.Log("Client Move");
-            SubmitMoveRequestServerRpc(move, shift);
+            SubmitMoveRequestServerRpc(move, grow, shift);
         }
     }
 
     private void Update() {
         if (!IsOwner) return;
-        bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-        if (Input.GetKeyDown(KeyCode.UpArrow))
+        if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
         {
-            Move(0, 1, shift);
+            if (Input.GetKeyDown(KeyCode.UpArrow))
+            {
+                Move(0, 0, 0, 1, false);
+            }
+            if (Input.GetKeyDown(KeyCode.DownArrow))
+            {
+                Move(0, 0, 0, -1, false);
+            }
+            if (Input.GetKeyDown(KeyCode.LeftArrow))
+            {
+                Move(0, 0, -1, 0, false);
+            }
+            if (Input.GetKeyDown(KeyCode.RightArrow))
+            {
+                Move(0, 0, 1, 0, false);
+            }
         }
-        if (Input.GetKeyDown(KeyCode.DownArrow))
+        else 
         {
-            Move(0, -1, shift);
-        }
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
-        {
-            Move(-1, 0, shift);
-        }
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-        {
-            Move(1, 0, shift);
+            bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+            if (Input.GetKeyDown(KeyCode.UpArrow))
+            {
+                Move(0, 1, 0, 0, shift);
+            }
+            if (Input.GetKeyDown(KeyCode.DownArrow))
+            {
+                Move(0, -1, 0, 0, shift);
+            }
+            if (Input.GetKeyDown(KeyCode.LeftArrow))
+            {
+                Move(-1, 0, 0, 0, shift);
+            }
+            if (Input.GetKeyDown(KeyCode.RightArrow))
+            {
+                Move(1, 0, 0, 0, shift);
+            }
         }
     }
 
@@ -95,9 +118,9 @@ public class Worker : NetworkBehaviour
 
 
     [Rpc(SendTo.Server)]
-    void SubmitMoveRequestServerRpc(Vector2Int move, bool shift) => ExecuteMove(move, shift);
+    void SubmitMoveRequestServerRpc(Vector2Int move, Vector2Int grow, bool shift) => ExecuteMove(move, grow, shift);
 
-    private void ExecuteMove(Vector2Int move, bool shift)
+    private void ExecuteMove(Vector2Int move, Vector2Int grow, bool shift)
     {
         int width = Services.textureManager.width;
         int height = Services.textureManager.height;
@@ -109,10 +132,9 @@ public class Worker : NetworkBehaviour
                 int edge = Position.Value.x + dir;
                 int end = width;
                 int inc = System.Math.Sign(dir);
-                for (int l = 0; l < size.y; l++)
+                for (int y = Position.Value.y; y < Mathf.Min(Position.Value.y + size.y, height); y++)
                 {
                     int x;
-                    int y = l + Position.Value.y;
                     for (x = edge; x >= 0 && x < end; x += inc)
                     {
                         int p = x + y * width;
@@ -135,9 +157,8 @@ public class Worker : NetworkBehaviour
                 int edge = Position.Value.y + dir;
                 int end = height;
                 int inc = System.Math.Sign(dir);
-                for (int l = 0; l < size.x; l++)
+                for (int x = Position.Value.x; x < Mathf.Min(Position.Value.x + size.x, width); x++)
                 {
-                    int x = l + Position.Value.x;
                     int y;
                     for (y = edge; y >= 0 && y < end; y += inc)
                     {
@@ -157,6 +178,7 @@ public class Worker : NetworkBehaviour
             }
         }
         Services.textureManager.ResetArea(Position.Value, Position.Value + size - Vector2Int.one);
+        size = new Vector2Int(Mathf.Clamp(size.x + grow.x, 1, width), Mathf.Clamp(size.y + grow.y, 1, height));
         Position.Value = new Vector2Int(Mathf.Clamp(Position.Value.x + move.x, 0, width), Mathf.Clamp(Position.Value.y + move.y, 0, height));
         Services.textureManager.SetArea(Position.Value, Position.Value + size - Vector2Int.one, color);
         Services.textureManager.texture.Apply();
