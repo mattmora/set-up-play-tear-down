@@ -96,13 +96,15 @@ public class AudioManager : MonoBehaviour
                 int indexKey = -b - 1;
                 // Color color = texture.pixels[blob[p % blob.Count]];
                 // sample += ColorToSample(color) * gain;
-                sample += texture.samples[blob[p[b] % blob.Count]] * gain;
+                int index = blob[p[b] % blob.Count];
+                sample += texture.samples[index] * gain;
                 int next = (p[b] + 1) % blob.Count;
                 progress[blob[0]] = next;
                 progress[indexKey] = next;
                 p[b] = next;
             }
 
+            sample = MathF.Tanh(sample);
             for (int c = 0; c < channels; c++) 
             {
                 int s = i * channels + c;

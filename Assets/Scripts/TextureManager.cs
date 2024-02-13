@@ -7,9 +7,7 @@ using UnityEngine;
 /*
 TODO:
 Workers
-Erasing
 Alt patterns
-Networking.
 */
 
 public class TextureManager : NetworkBehaviour
@@ -26,6 +24,7 @@ public class TextureManager : NetworkBehaviour
     // [HideInInspector]
     // public NetworkVariable<Color>[] pixels;
     public Color[] pixels;
+    public Color[] scratch;
     public float[] samples;
     // public NetworkPixels pixels;
     // public Sample[][] samples;
@@ -74,6 +73,7 @@ public class TextureManager : NetworkBehaviour
     public void InitializePixels()
     {
         pixels = new Color[width * height];
+        scratch = new Color[width * height];
         samples = new float[width * height];
         // pixels = new NetworkPixels(width * height, this);
         // Debug.Log("Init");
@@ -145,36 +145,27 @@ public class TextureManager : NetworkBehaviour
 
         if (Input.GetMouseButtonUp(0) && anchorPixel.x >= 0)
         {
-            var makeSequence = Input.GetKey(KeyCode.S);
             int size = (Mathf.Abs(anchorPixel.x - mousePixel.x) + 1) * (Mathf.Abs(anchorPixel.y - mousePixel.y) + 1);
-            // SampleSequence seq = null;
-            // if (makeSequence) 
-            // {
-            //     seq = Instantiate(sequencePrefab).GetComponent<SampleSequence>();
-            //     seq.Initialize(size);
-            // }
-            Apply(anchorPixel, mousePixel, (x, y, rect, i) => {
-                int f = x + y * width;
-                // if (makeSequence) 
-                // {
-                //     Vector3 p = new((x + 0.5f) / texture.width, (y + 0.5f) / texture.height, 1);
-                //     seq.line.SetPosition(i, mainCamera.ViewportToWorldPoint(p));
-                //     seq[i] = f;
-                // }
-                // if (Input.GetKey(KeyCode.D)) 
-                // {
+            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+            {
+                ResetArea(anchorPixel, mousePixel);
+                UpdateBlobs();
+            }
+            else 
+            {
+                Apply(anchorPixel, mousePixel, (x, y, rect, i) => {
+                    int f = x + y * width;
                     float phase = (float)i / size * 2f * Mathf.PI;
                     Color c = AudioManager.PhaseAmpToColor(phase, 1f);
                     SetPixel(x, y, c);
                     return c;
-                // }
-            }, true);
-            
+                }, true);
+            }
         }
         texture.Apply();
     }
 
-    private void SetPixel(int x, int y, Color c)
+    public void SetPixel(int x, int y, Color c)
     {
         texture.SetPixel(x, y, c);
         if (NetworkManager.Singleton.IsServer) 
@@ -186,13 +177,6 @@ public class TextureManager : NetworkBehaviour
             ccl.SetPixel(x, y, c.a > 0);
         }
     }
-
-    public Color GetPixel(int x, int y) => texture.GetPixel(x, y);
-
-    // private void SetSample(int x, int y, Color c)
-    // {
-    //     samples[x][y] = new Sample(c);
-    // }
 
     public void Apply(Vector2Int from, Vector2Int to, System.Func<int, int, RectInt, int, Color> action, bool updateBlobs = false)
     {
