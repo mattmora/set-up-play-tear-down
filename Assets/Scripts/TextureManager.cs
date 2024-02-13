@@ -104,7 +104,7 @@ public class TextureManager : NetworkBehaviour
     [Rpc(SendTo.NotServer)]
     public void DrawRpc(Vector2Int from, Vector2Int to, Color[] pixels)
     {
-        Debug.Log("Draw");
+        // Debug.Log("Draw");
         Apply(from, to, (x, y, rect, i) => {
             Color c = pixels[i];
             SetPixel(x, y, c);
@@ -180,7 +180,7 @@ public class TextureManager : NetworkBehaviour
 
     public void Apply(Vector2Int from, Vector2Int to, System.Func<int, int, RectInt, int, Color> action, bool updateBlobs = false)
     {
-        Debug.Log($"{from} {to}");
+        // Debug.Log($"{from} {to}");
         int xStart = Mathf.Clamp(Mathf.Min(from.x, to.x), 0, width - 1);
         int xEnd =  Mathf.Clamp(Mathf.Max(from.x, to.x), 0, width - 1);
         int yStart =  Mathf.Clamp(Mathf.Min(from.y, to.y), 0, height - 1);
@@ -203,7 +203,7 @@ public class TextureManager : NetworkBehaviour
         if (updateBlobs) UpdateBlobs();
         if (NetworkManager.Singleton.IsServer) 
         {
-            Debug.Log("server");
+            // Debug.Log("server");
             DrawRpc(from, to, colors);
         }
         // int i = 0;
