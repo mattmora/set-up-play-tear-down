@@ -44,64 +44,15 @@ public class Worker : NetworkBehaviour
 
     public void Move(int x, int y, bool shift)
     {
-        int width = Services.textureManager.width;
-        int height = Services.textureManager.height;
         if (shift)
         {
-            // if (move.y == 0) 
-            // {
-            //     int dir = move.x > 0 ? size.x : -1;
-            //     int edge = Position.Value.x + dir;
-            //     int end = width;
-            //     int inc = System.Math.Sign(dir);
-            //     for (int y = Position.Value.y; y < Mathf.Min(Position.Value.y + size.y, height); y++)
-            //     {
-            //         int x;
-            //         for (x = edge; x >= 0 && x < end; x += inc)
-            //         {
-            //             int p = x + y * width;
-            //             if (Services.textureManager.pixels[p].a == 0) break;
-            //             Services.textureManager.scratch[p] = Services.textureManager.pixels[p];
-            //         }
-            //         if (x != edge)
-            //         {
-            //             Services.textureManager.Apply(new Vector2Int(edge + inc, y), new Vector2Int(x, y), (xp, yp, rect, i) => {
-            //                 Color c = Services.textureManager.scratch[(xp - inc) + yp * width];
-            //                 Services.textureManager.SetPixel(xp, yp, c);
-            //                 return c;
-            //             });
-            //         }
-            //     }
-            // }
-            // else 
-            // {
-            //     int dir = move.y > 0 ? size.y : -1;
-            //     int edge = Position.Value.y + dir;
-            //     int end = height;
-            //     int inc = System.Math.Sign(dir);
-            //     for (int x = Position.Value.x; x < Mathf.Min(Position.Value.x + size.x, width); x++)
-            //     {
-            //         int y;
-            //         for (y = edge; y >= 0 && y < end; y += inc)
-            //         {
-            //             int p = x + y * width;
-            //             if (Services.textureManager.pixels[p].a == 0) break;
-            //             Services.textureManager.scratch[p] = Services.textureManager.pixels[p];
-            //         }
-            //         if (y != edge)
-            //         {
-            //             Services.textureManager.Apply(new Vector2Int(x, edge + inc), new Vector2Int(x, y), (xp, yp, rect, i) => {
-            //                 Color c = Services.textureManager.scratch[xp + (yp - inc) * width];
-            //                 Services.textureManager.SetPixel(xp, yp, c);
-            //                 return c;
-            //             });
-            //         }
-            //     }
-            // }
+            ShiftRpc(Position.Value.x, Position.Value.y, Size.Value.x, Size.Value.y, x, y);
         }
         Position.Value = new Vector2Int(Position.Value.x + x, Position.Value.y + y);
         if (Input.GetKey(KeyCode.Space))
+        {
             PaintRpc(Position.Value.x, Position.Value.y, Size.Value.x, Size.Value.y, ColorId.Value);
+        }
         // Services.textureManager.UpdateBlobs();
     }
 
@@ -122,6 +73,72 @@ public class Worker : NetworkBehaviour
             colors[i] = GetColor(cId, (float)i / (w * h));
         }
         Services.textureManager.PaintCanvasArea(x, y, w, h, colors);
+    }
+
+    [Rpc(SendTo.Everyone)]
+    private void ShiftRpc(int bx, int by, int bw, int bh, int dx, int dy)
+    {
+        RectInt block = new(bx, by, bw, bh);
+        int width = Services.textureManager.width;
+        int height = Services.textureManager.height;
+        List<Color32> colors = new();
+        if (dy == 0) 
+        {
+            int dir = dx > 0 ? block.width : -1;
+            int edge = block.x + dir;
+            int end = width;
+            int inc = Math.Sign(dir);
+            for (int y = block.y; y < Mathf.Min(block.y + block.height, height); y++)
+            {
+                int x;
+                if (dir > 0) colors.Add(Services.textureManager.transparent);
+                for (x = edge; x >= 0 && x < end; x += inc)
+                {
+                    int p = x + y * width;
+                    if (Services.textureManager.canvasPixels[p].a == 0) break;
+                    colors.Add(Services.textureManager.canvasPixels[p]);
+                }
+                if (dir < 0) colors.Add(Services.textureManager.transparent);
+                if (x != edge)
+                {
+                    int xStart = Mathf.Min(edge, x);
+                    int xEnd =  Mathf.Max(edge, x);
+                    int w = xEnd - xStart + 1;
+                    RectInt rect = new(xStart, y, w, 1);
+                    Debug.Log(rect);
+                    Services.textureManager.PaintCanvasArea(rect.x, rect.y, rect.width, rect.height, colors.ToArray());
+                }
+                colors.Clear();
+            }
+        }
+        else 
+        {
+            int dir = dy > 0 ? block.height : -1;
+            int edge = block.y + dir;
+            int end = height;
+            int inc = Math.Sign(dir);
+            for (int x = block.x; x < Mathf.Min(block.x + block.width, width); x++)
+            {
+                int y;
+                if (dir > 0) colors.Add(Services.textureManager.transparent);
+                for (y = edge; y >= 0 && y < end; y += inc)
+                {
+                    int p = x + y * width;
+                    if (Services.textureManager.canvasPixels[p].a == 0) break;
+                    colors.Add(Services.textureManager.canvasPixels[p]);
+                }
+                if (dir < 0) colors.Add(Services.textureManager.transparent);
+                if (y != edge)
+                {
+                    int yStart =  Mathf.Min(edge, y);
+                    int yEnd = Mathf.Max(edge, y);
+                    int h = yEnd - yStart + 1;
+                    RectInt rect = new(x, yStart, 1, h);
+                    Services.textureManager.PaintCanvasArea(rect.x, rect.y, rect.width, rect.height, colors.ToArray());
+                }
+                colors.Clear();
+            }
+        }
     }
 
     private void Update() 

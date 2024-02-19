@@ -26,7 +26,7 @@ public class TextureManager : MonoBehaviour
     // public NetworkVariable<Color>[] pixels;
     public Color32[] canvasPixels;
     public Color32[] playersPixels;
-    public Color32[] scratch;
+    
     public float[] canvasSamples;
     public float[] playersSamples;
     // public NetworkPixels pixels;
@@ -88,8 +88,6 @@ public class TextureManager : MonoBehaviour
         playersPixels = new Color32[width * height];
         canvasSamples = new float[width * height];
         playersSamples = new float[width * height];
-
-        scratch = new Color32[width * height];
     }
 
     // [Rpc(SendTo.NotServer)]
@@ -282,7 +280,6 @@ public class TextureManager : MonoBehaviour
         int i = x + y * width;
         playersBlob = playersCCL.GetBlob(i);
         canvasBlob = canvasCCL.GetBlob(i);
-        Debug.Log(canvasBlob.Count);
     }
 
     // private void SetArea(Vector2Int from, Vector2Int to, Color c, bool apply = true) => SetArea(from, to, (x, y, rect) => c, apply);
