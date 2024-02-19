@@ -21,6 +21,7 @@ public class Worker : NetworkBehaviour
             Position.Value = readPosition;
             Size.Value = readSize;
             Services.textureManager.localWorker = this;
+            Services.textureManager.UpdatePlayers();
         }
         Position.OnValueChanged += (previousValue, newValue) => {
             readPosition = newValue;
@@ -33,7 +34,6 @@ public class Worker : NetworkBehaviour
         ColorId.OnValueChanged += (previousValue, newValue) => {
             Services.textureManager.UpdatePlayers();
         };
-        Services.textureManager.UpdatePlayers();
     }
 
     public void Move(int x, int y, bool shift)
