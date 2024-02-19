@@ -66,8 +66,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab55d18a00d750a48bda64dfeb38193e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  readPosition: {x: 0, y: 0}
   Position:
     m_InternalValue: {x: 0, y: 0}
-  readPosition: {x: 0, y: 0}
-  size: {x: 2, y: 2}
-  color: {r: 0, g: 0, b: 0, a: 1}
+  readSize: {x: 1, y: 1}
+  maxSize: {x: 8, y: 8}
+  Size:
+    m_InternalValue: {x: 0, y: 0}
+  ColorId:
+    m_InternalValue: 0

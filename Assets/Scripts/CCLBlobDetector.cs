@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -12,6 +13,8 @@ namespace ConnectedComponentLabeling
 
         private bool[] _labeledPixels;
         private bool[] _pixelsForeground;
+
+        public CCLBlobDetector fallback;
 
         private int _bmpWidth;
         private int _bmpHeight;
@@ -32,13 +35,25 @@ namespace ConnectedComponentLabeling
                 }
             }
 
+            fallback = this;
+
             return bmp.width * bmp.height;
+        }
+
+        public void ResetPixels()
+        {
+            Array.Clear(_pixelsForeground, 0, _pixelsForeground.Length);
         }
 
         public void SetPixel(int x, int y, bool set)
         {
             var pixelId = GetPixelId(x, y);
             _pixelsForeground[pixelId] = set;
+        }
+
+        public void SetPixel(int i, bool set)
+        {
+            _pixelsForeground[i] = set;
         }
 
         /// <summary>
@@ -87,6 +102,41 @@ namespace ConnectedComponentLabeling
             }
 
             return _blobs;
+        }
+
+         public List<int> GetBlob(int start)
+        {
+            var pixelIds = new Stack<int>();
+            int nrPixel = _bmpWidth*_bmpHeight;
+
+            _labeledPixels = new bool[nrPixel];
+            _blobs.Clear();
+            _currentBlobList = new List<int>();
+
+            int i = start;
+
+            if (IsPixelForeground(i) && !IsPixelLabeled(i))
+            {
+                AddPixelToCurrentBlob(i);
+                pixelIds.Push(i);
+            }
+
+            while (pixelIds.Any())
+            {
+                var nextPixel = pixelIds.Pop();
+                var neighbours = GetNeighboursBy4Connectivity(nextPixel).ToList();
+                foreach (var neighbour in neighbours)
+                {
+                    if (IsPixelForeground(neighbour) && !IsPixelLabeled(neighbour))
+                    {
+                        AddPixelToCurrentBlob(neighbour);
+                        pixelIds.Push(neighbour);
+                    }
+                }
+            }
+
+            // _currentBlobList.Sort();
+            return _currentBlobList;
         }
 
         private int GetPixelId(int col, int row)
@@ -149,7 +199,7 @@ namespace ConnectedComponentLabeling
 
         private bool IsPixelForeground(int pixelId)
         {
-            return _pixelsForeground[pixelId];
+            return _pixelsForeground[pixelId] || fallback._pixelsForeground[pixelId];
         }
 
         private int? GetPixelIdValidated(int col, int row)
