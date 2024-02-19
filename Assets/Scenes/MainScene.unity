@@ -1840,7 +1840,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1102995010
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2636,6 +2636,7 @@ GameObject:
   - component: {fileID: 1508741014}
   - component: {fileID: 1508741015}
   - component: {fileID: 1508741013}
+  - component: {fileID: 1508741016}
   m_Layer: 0
   m_Name: AudioManager
   m_TagString: Untagged
@@ -2682,6 +2683,31 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1508741012}
   m_Enabled: 1
+--- !u!169 &1508741016
+AudioLowPassFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1508741012}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_LowpassResonanceQ: 1
+  lowpassLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.22727273
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &1587231021
 GameObject:
   m_ObjectHideFlags: 0

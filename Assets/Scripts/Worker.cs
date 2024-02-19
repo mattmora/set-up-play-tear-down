@@ -7,11 +7,11 @@ using System;
 public class Worker : NetworkBehaviour
 {
     public Vector2Int readPosition = new(0, 0);
-    public NetworkVariable<Vector2Int> Position = new();
+    public NetworkVariable<Vector2Int> Position = new(Vector2Int.one, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
     public Vector2Int readSize = new(1, 1);
     public Vector2Int maxSize = new(8, 8);
-    public NetworkVariable<Vector2Int> Size = new();
-    public NetworkVariable<int> ColorId = new();
+    public NetworkVariable<Vector2Int> Size = new(Vector2Int.one, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    public NetworkVariable<int> ColorId = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
     public override void OnNetworkSpawn()
     {
