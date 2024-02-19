@@ -19,6 +19,8 @@ namespace ConnectedComponentLabeling
         private int _bmpWidth;
         private int _bmpHeight;
 
+        private bool completeFallback;
+
         public int Initialize(Texture2D bmp)
         {
             _bmpWidth = bmp.width;
@@ -106,6 +108,8 @@ namespace ConnectedComponentLabeling
 
          public List<int> GetBlob(int start)
         {
+            completeFallback = true;
+
             var pixelIds = new Stack<int>();
             int nrPixel = _bmpWidth*_bmpHeight;
 
@@ -135,6 +139,7 @@ namespace ConnectedComponentLabeling
                 }
             }
 
+            if (completeFallback) return new List<int>();
             // _currentBlobList.Sort();
             return _currentBlobList;
         }
@@ -160,13 +165,13 @@ namespace ConnectedComponentLabeling
             int? bottomId = GetPixelIdValidated(col, row - 1);
 
             var validNeighbours = new List<int>();
-            if (leftId.HasValue)
-            {
-                validNeighbours.Add(leftId.Value);
-            }
             if (rightId.HasValue)
             {
                 validNeighbours.Add(rightId.Value);
+            }
+            if (leftId.HasValue)
+            {
+                validNeighbours.Add(leftId.Value);
             }
             if (topId.HasValue)
             {
@@ -199,6 +204,7 @@ namespace ConnectedComponentLabeling
 
         private bool IsPixelForeground(int pixelId)
         {
+            completeFallback = completeFallback && !_pixelsForeground[pixelId];
             return _pixelsForeground[pixelId] || fallback._pixelsForeground[pixelId];
         }
 

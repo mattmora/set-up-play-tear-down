@@ -9,12 +9,11 @@ public class AudioManager : MonoBehaviour
 {
     public float gain = 0.5F;
 
-    public int playersDownsample = 4;
+    public int canvasDownsample = 2;
+    public int playersDownsample = 8;
 
-    private float amp = 0.0F;
-    private float phase = 0.0F;
-    private double sampleRate = 0.0F;
-    private int accent;
+    private float previous = 0f;
+
     private bool running = false;
 
     public List<SampleSequence> sequences;
@@ -32,7 +31,6 @@ public class AudioManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        sampleRate = AudioSettings.outputSampleRate;
         running = true;
         completed = new();
     }
@@ -71,12 +69,13 @@ public class AudioManager : MonoBehaviour
                 sample += texture.playersSamples[playersIndex] * 0.5f;
             }
 
-            sample = MathF.Tanh(sample * gain);
+            sample = MathF.Tanh(sample * gain); 
             for (int c = 0; c < channels; c++) 
             {
                 int s = i * channels + c;
-                data[s] = sample;
+                data[s] = sample * 0.5f + previous * 0.5f;
             }
+            previous = sample;
         }
     }
 

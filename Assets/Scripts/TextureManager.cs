@@ -22,15 +22,11 @@ public class TextureManager : MonoBehaviour
 
     Vector2Int anchorPixel;
 
-    // [HideInInspector]
-    // public NetworkVariable<Color>[] pixels;
     public Color32[] canvasPixels;
     public Color32[] playersPixels;
     
     public float[] canvasSamples;
     public float[] playersSamples;
-    // public NetworkPixels pixels;
-    // public Sample[][] samples;
 
     public GameObject sequencePrefab;
 
@@ -90,58 +86,6 @@ public class TextureManager : MonoBehaviour
         playersSamples = new float[width * height];
     }
 
-    // [Rpc(SendTo.NotServer)]
-    // public void DrawRpc(Vector2Int from, Vector2Int to, Color[] pixels)
-    // {
-    //     // Debug.Log("Draw");
-    //     Apply(from, to, (x, y, rect, i) => {
-    //         Color c = pixels[i];
-    //         SetPixel(x, y, c);
-    //         return c;
-    //     });
-    // }
-
-    // Update is called once per frame
-    void Update()
-    {
-        // if (Input.GetKeyDown(KeyCode.C))
-        // {
-        //     ResetTexture();
-        // }
-
-        // Vector3 viewportPos = mainCamera.ScreenToViewportPoint(Input.mousePosition);
-        // int mouseX = Mathf.Clamp((int)(viewportPos.x * texture.width), 0, width - 1);
-        // int mouseY = Mathf.Clamp((int)(viewportPos.y * texture.height), 0, height - 1);
-        // Vector2Int mousePixel = new(mouseX, mouseY);
-
-        // if (Input.GetMouseButtonDown(0)) 
-        // {
-        //     anchorPixel = mousePixel;
-        // }
-
-        // if (Input.GetMouseButtonUp(0) && anchorPixel.x >= 0)
-        // {
-        //     int size = (Mathf.Abs(anchorPixel.x - mousePixel.x) + 1) * (Mathf.Abs(anchorPixel.y - mousePixel.y) + 1);
-        //     if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-        //     {
-        //         ResetArea(anchorPixel, mousePixel);
-        //         UpdateBlobs();
-        //     }
-        //     else 
-        //     {
-        //         Apply(anchorPixel, mousePixel, (x, y, rect, i) => {
-        //             int f = x + y * width;
-        //             float phase = (float)i / size * 2f * Mathf.PI;
-        //             Color c = AudioManager.PhaseAmpToColor(phase, 1f);
-        //             SetPixel(x, y, c);
-        //             return c;
-        //         }, true);
-        //     }
-        // }
-        // texture.Apply();
-        // overlayTexture.Apply();
-    }
-
     public void UpdatePlayers()
     {
         Array.Clear(playersPixels, 0, playersPixels.Length);
@@ -150,7 +94,31 @@ public class TextureManager : MonoBehaviour
         {
             var position = worker.Position.Value;
             var size = worker.Size.Value;
+
+            // int i = 0;
+            // int n = size.x + size.y - 1;
+            // for (int d = 0; d < n; d++)
+            // {
+            //     for (int y = Mathf.Max(0, d + 1 - size.x); y < Mathf.Min(d + 1, size.y); y++)
+            //     {
+            //         int px = d - y + position.x;
+            //         int py = y + position.y;
+            //         if (px < 0 || width <= px || py < 0 || height <= py) 
+            //         {
+            //             i++; 
+            //             continue;
+            //         }
+            //         int p = px + py * width;
+            //         Color c = worker.GetColor((float)i / (size.x * size.y));
+            //         playersPixels[p] = c;
+            //         playersSamples[p] = AudioManager.ColorToSample(c);
+            //         playersCCL.SetPixel(p, c.a > 0);
+            //         i++;
+            //     }
+            // }
+            
             float i = 0;
+            bool odd = false;
             for (int y = position.y; y < position.y + size.y; y++)
             {
                 if (y < 0 || height <= y) 
@@ -160,18 +128,20 @@ public class TextureManager : MonoBehaviour
                 }
                 for (int x = position.x; x < position.x + size.x; x++)
                 {
-                    if (x < 0 || width <= x) 
+                    int xr = odd ? (position.x + size.x - 1) - (x - position.x) : x;
+                    if (xr < 0 || width <= xr) 
                     {
                         i++;
                         continue;
                     }
-                    int p = x + y * width;
+                    int p = xr + y * width;
                     Color c = worker.GetColor(i / (size.x * size.y));
                     playersPixels[p] = c;
                     playersSamples[p] = AudioManager.ColorToSample(c);
                     playersCCL.SetPixel(p, c.a > 0);
                     i++;
                 }
+                // odd = !odd;
             }
         }
         playersTexture.SetPixels32(playersPixels);
@@ -218,58 +188,6 @@ public class TextureManager : MonoBehaviour
         UpdateBlobs();
     }
 
-    // public void SetPixel(int x, int y, Color c)
-    // {
-    //     texture.SetPixel(x, y, c);
-    //     if (NetworkManager.Singleton.IsServer) 
-    //     {
-    //         // Debug.Log(pixels != null);
-    //         int i = x + y * width;
-    //         pixels[i] = c;
-    //         samples[i] = AudioManager.ColorToSample(c);
-    //         ccl.SetPixel(x, y, c.a > 0);
-    //     }
-    // }
-
-    // public void Apply(Vector2Int from, Vector2Int to, System.Func<int, int, RectInt, int, Color> action, bool updateBlobs = false)
-    // {
-    //     // Debug.Log($"{from} {to}");
-    //     int xStart = Mathf.Clamp(Mathf.Min(from.x, to.x), 0, width - 1);
-    //     int xEnd =  Mathf.Clamp(Mathf.Max(from.x, to.x), 0, width - 1);
-    //     int yStart =  Mathf.Clamp(Mathf.Min(from.y, to.y), 0, height - 1);
-    //     int yEnd =  Mathf.Clamp(Mathf.Max(from.y, to.y), 0, height - 1);
-    //     int w = xEnd - xStart + 1;
-    //     int h = yEnd - yStart + 1;
-    //     RectInt rect = new(xStart, yStart, w, h);
-    //     Color[] colors = new Color[w * h];
-    //     int i = 0;
-
-    //     for (int y = yStart; y <= yEnd; y++)
-    //     {
-    //         for (int x = xStart; x <= xEnd; x++)
-    //         {   
-    //            colors[i] = action(x, y, rect, i);
-    //            i++;
-    //         }
-    //     }
-
-    //     if (updateBlobs) UpdateBlobs();
-    //     if (NetworkManager.Singleton.IsServer) 
-    //     {
-    //         // Debug.Log("server");
-    //         DrawRpc(from, to, colors);
-    //     }
-    //     // int i = 0;
-    //     // foreach (var blob in blobs)
-    //     // {
-    //     //     foreach (int pixel in blob)
-    //     //     {
-    //     //         Debug.Log($"{i} {pixel}");
-    //     //     }
-    //     //     i++;
-    //     // }
-    // }
-
     public void UpdateBlobs()
     {
         var position = localWorker.Position.Value;
@@ -281,23 +199,4 @@ public class TextureManager : MonoBehaviour
         playersBlob = playersCCL.GetBlob(i);
         canvasBlob = canvasCCL.GetBlob(i);
     }
-
-    // private void SetArea(Vector2Int from, Vector2Int to, Color c, bool apply = true) => SetArea(from, to, (x, y, rect) => c, apply);
-
-    // private void ResetTexture() 
-    // {
-    //     ResetArea(Vector2Int.zero, new Vector2Int(width - 1, height - 1));
-    //     texture.Apply();
-    // } 
-
-    // public void ResetArea(Vector2Int from, Vector2Int to) => SetArea(from, to, transparent);
-
-    // public void SetArea(Vector2Int from, Vector2Int to, Color c)
-    // {
-    //     Apply(from, to, (x, y, rect, i) => 
-    //     {
-    //         SetPixel(x, y, c); 
-    //         return c;
-    //     });
-    // }
 }

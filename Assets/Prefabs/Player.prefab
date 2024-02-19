@@ -70,7 +70,7 @@ MonoBehaviour:
   Position:
     m_InternalValue: {x: 0, y: 0}
   readSize: {x: 1, y: 1}
-  maxSize: {x: 8, y: 8}
+  maxSize: {x: 32, y: 32}
   Size:
     m_InternalValue: {x: 0, y: 0}
   ColorId:

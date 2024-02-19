@@ -13,17 +13,11 @@ public class Worker : NetworkBehaviour
     public NetworkVariable<Vector2Int> Size = new();
     public NetworkVariable<int> ColorId = new();
 
-    private void Awake() 
-    {
-
-    }
-
     public override void OnNetworkSpawn()
     {
         Services.textureManager.workers.Add(this);
         if (IsOwner)
         {
-            ColorId.Value = 1;
             Position.Value = readPosition;
             Size.Value = readSize;
             Services.textureManager.localWorker = this;
@@ -65,14 +59,23 @@ public class Worker : NetworkBehaviour
     }
 
     [Rpc(SendTo.Everyone)]
-    private void PaintRpc(int x, int y, int w, int h, int cId)
+    private void PaintRpc(int x0, int y0, int w, int h, int cId)
     {
         var colors = new Color32[w * h];
-        for (int i = 0; i < w * h; i++)
+        int i = 0;
+        bool odd = false;
+        for (int y = 0; y < h; y++)
         {
-            colors[i] = GetColor(cId, (float)i / (w * h));
+            for (int x = 0; x < w; x++)
+            {
+                int xr = odd ? (w - 1) - x : x;
+                int p = xr + y * w;
+                colors[p] = GetColor(cId, (float)i / (w * h));
+                i++;
+            }
+            // odd = !odd;
         }
-        Services.textureManager.PaintCanvasArea(x, y, w, h, colors);
+        Services.textureManager.PaintCanvasArea(x0, y0, w, h, colors);
     }
 
     [Rpc(SendTo.Everyone)]
@@ -105,7 +108,7 @@ public class Worker : NetworkBehaviour
                     int xEnd =  Mathf.Max(edge, x);
                     int w = xEnd - xStart + 1;
                     RectInt rect = new(xStart, y, w, 1);
-                    Debug.Log(rect);
+                    // Debug.Log(rect);
                     Services.textureManager.PaintCanvasArea(rect.x, rect.y, rect.width, rect.height, colors.ToArray());
                 }
                 colors.Clear();
@@ -145,16 +148,16 @@ public class Worker : NetworkBehaviour
     {
         if (!IsOwner) return;
         
-        if (Input.GetKeyDown(KeyCode.Alpha0)) ColorId.Value = 0;
-        else if (Input.GetKeyDown(KeyCode.Alpha1)) ColorId.Value = 1;
-        else if (Input.GetKeyDown(KeyCode.Alpha2)) ColorId.Value = 2;
-        else if (Input.GetKeyDown(KeyCode.Alpha3)) ColorId.Value = 3;
-        else if (Input.GetKeyDown(KeyCode.Alpha4)) ColorId.Value = 4;
-        else if (Input.GetKeyDown(KeyCode.Alpha5)) ColorId.Value = 5;
-        else if (Input.GetKeyDown(KeyCode.Alpha6)) ColorId.Value = 6;
-        else if (Input.GetKeyDown(KeyCode.Alpha7)) ColorId.Value = 7;
-        else if (Input.GetKeyDown(KeyCode.Alpha8)) ColorId.Value = 8;
-        else if (Input.GetKeyDown(KeyCode.Alpha9)) ColorId.Value = 9;
+        if (Input.GetKeyDown(KeyCode.Alpha0)) ColorId.Value = 9;
+        else if (Input.GetKeyDown(KeyCode.Alpha1)) ColorId.Value = 0;
+        else if (Input.GetKeyDown(KeyCode.Alpha2)) ColorId.Value = 1;
+        else if (Input.GetKeyDown(KeyCode.Alpha3)) ColorId.Value = 2;
+        else if (Input.GetKeyDown(KeyCode.Alpha4)) ColorId.Value = 3;
+        else if (Input.GetKeyDown(KeyCode.Alpha5)) ColorId.Value = 4;
+        else if (Input.GetKeyDown(KeyCode.Alpha6)) ColorId.Value = 5;
+        else if (Input.GetKeyDown(KeyCode.Alpha7)) ColorId.Value = 6;
+        else if (Input.GetKeyDown(KeyCode.Alpha8)) ColorId.Value = 7;
+        else if (Input.GetKeyDown(KeyCode.Alpha9)) ColorId.Value = 8;
         else if (Input.GetKeyDown(KeyCode.Q)) ColorId.Value = 10;
 
         if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
@@ -203,11 +206,7 @@ public class Worker : NetworkBehaviour
         }
     }
 
-    public Color32 GetColor(float p) 
-    {
-        if (ColorId.Value == 10) return Color.HSVToRGB(p, 1f, 1f);
-        return Services.paletteManager.colors[Mathf.Clamp(ColorId.Value, 0, Services.paletteManager.colors.Count - 1)];
-    }
+    public Color32 GetColor(float p) => GetColor(ColorId.Value, p);
 
     public Color32 GetColor(int cId, float p) 
     {
