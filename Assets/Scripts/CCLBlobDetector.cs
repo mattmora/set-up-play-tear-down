@@ -64,7 +64,7 @@ namespace ConnectedComponentLabeling
         /// <returns></returns>
         public List<List<int>> GetBlobs()
         {
-            var pixelIds = new Stack<int>();
+            var pixelIds = new Queue<int>();
             int nrPixel = _bmpWidth*_bmpHeight;
 
             _labeledPixels = new bool[nrPixel];
@@ -78,19 +78,19 @@ namespace ConnectedComponentLabeling
                 {
                     anythingLabeled = true;
                     AddPixelToCurrentBlob(i);
-                    pixelIds.Push(i);
+                    pixelIds.Enqueue(i);
                 }
 
                 while (pixelIds.Any())
                 {
-                    var nextPixel = pixelIds.Pop();
+                    var nextPixel = pixelIds.Dequeue();
                     var neighbours = GetNeighboursBy4Connectivity(nextPixel).ToList();
                     foreach (var neighbour in neighbours)
                     {
                         if (IsPixelForeground(neighbour) && !IsPixelLabeled(neighbour))
                         {
                             AddPixelToCurrentBlob(neighbour);
-                            pixelIds.Push(neighbour);
+                            pixelIds.Enqueue(neighbour);
                         }
                     }
                 }
@@ -110,7 +110,7 @@ namespace ConnectedComponentLabeling
         {
             completeFallback = true;
 
-            var pixelIds = new Stack<int>();
+            var pixelIds = new Queue<int>();
             int nrPixel = _bmpWidth*_bmpHeight;
 
             _labeledPixels = new bool[nrPixel];
@@ -122,19 +122,19 @@ namespace ConnectedComponentLabeling
             if (IsPixelForeground(i) && !IsPixelLabeled(i))
             {
                 AddPixelToCurrentBlob(i);
-                pixelIds.Push(i);
+                pixelIds.Enqueue(i);
             }
 
             while (pixelIds.Any())
             {
-                var nextPixel = pixelIds.Pop();
+                var nextPixel = pixelIds.Dequeue();
                 var neighbours = GetNeighboursBy4Connectivity(nextPixel).ToList();
                 foreach (var neighbour in neighbours)
                 {
                     if (IsPixelForeground(neighbour) && !IsPixelLabeled(neighbour))
                     {
                         AddPixelToCurrentBlob(neighbour);
-                        pixelIds.Push(neighbour);
+                        pixelIds.Enqueue(neighbour);
                     }
                 }
             }
