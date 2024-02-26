@@ -175,8 +175,8 @@ public class Worker : NetworkBehaviour
             Position.Value = new(Services.textureManager.width / 2, Services.textureManager.height / 2);
         }
 
-        float h = Input.GetAxisRaw("Horizontal") * Time.deltaTime * 4;
-        float v = Input.GetAxisRaw("Vertical") * Time.deltaTime * 4;
+        float h = Input.GetAxisRaw("Horizontal") * Time.deltaTime * 5;
+        float v = Input.GetAxisRaw("Vertical") * Time.deltaTime * 5;
         hInput = h == 0f ? 0f : hInput + h;
         vInput = v == 0f ? 0f : vInput + v;
         int hI = (int)hInput;
