@@ -149,7 +149,7 @@ public class TextureManager : MonoBehaviour
         UpdateBlobs();
     }
 
-    public void PaintCanvasArea(int x0, int y0, int w, int h, Color32[] colors)
+    public void PaintCanvasArea(int x0, int y0, int w, int h, Color32[] colors, bool updateBlobs)
     {
         System.Drawing.Rectangle rect = new(x0, y0, w, h);
         System.Drawing.Rectangle bounds = new(0, 0, width, height);
@@ -185,7 +185,7 @@ public class TextureManager : MonoBehaviour
         }
         texture.SetPixels32(rect.Left, rect.Top, rect.Width, rect.Height, clampedColors);
         texture.Apply();
-        UpdateBlobs();
+        if (updateBlobs) UpdateBlobs();
     }
 
     public void UpdateBlobs()

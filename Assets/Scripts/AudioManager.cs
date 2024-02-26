@@ -22,6 +22,8 @@ public class AudioManager : MonoBehaviour
     private int playersProgress;
     private HashSet<int> completed;
 
+    private float mute = 1f;
+
     private void Awake() 
     {
         Services.audioManager = this;
@@ -33,6 +35,14 @@ public class AudioManager : MonoBehaviour
     {
         running = true;
         completed = new();
+    }
+
+    private void Update() 
+    {
+        if (Input.GetKeyDown(KeyCode.M))
+        {
+            mute = 1f - mute;
+        }
     }
 
     void OnAudioFilterRead(float[] data, int channels)
@@ -69,7 +79,7 @@ public class AudioManager : MonoBehaviour
                 sample += texture.playersSamples[playersIndex] * 0.5f;
             }
 
-            sample = MathF.Tanh(sample * gain); 
+            sample = MathF.Tanh(sample * gain * mute); 
             for (int c = 0; c < channels; c++) 
             {
                 int s = i * channels + c;

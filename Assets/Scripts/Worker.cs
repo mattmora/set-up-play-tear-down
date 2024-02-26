@@ -7,11 +7,13 @@ using System;
 public class Worker : NetworkBehaviour
 {
     public Vector2Int readPosition = new(0, 0);
-    public NetworkVariable<Vector2Int> Position = new(Vector2Int.one, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    public NetworkVariable<Vector2Int> Position = new(Vector2Int.zero, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
     public Vector2Int readSize = new(1, 1);
     public Vector2Int maxSize = new(8, 8);
     public NetworkVariable<Vector2Int> Size = new(Vector2Int.one, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
     public NetworkVariable<int> ColorId = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
+    float hInput, vInput;
 
     public override void OnNetworkSpawn()
     {
@@ -22,18 +24,19 @@ public class Worker : NetworkBehaviour
             Size.Value = readSize;
             Services.textureManager.localWorker = this;
             Services.textureManager.UpdatePlayers();
+
+            Position.OnValueChanged += (previousValue, newValue) => {
+                readPosition = newValue;
+                Services.textureManager.UpdatePlayers();
+            };
+            Size.OnValueChanged += (previousValue, newValue) => {
+                readSize = newValue;
+                Services.textureManager.UpdatePlayers();
+            };
+            ColorId.OnValueChanged += (previousValue, newValue) => {
+                Services.textureManager.UpdatePlayers();
+            };
         }
-        Position.OnValueChanged += (previousValue, newValue) => {
-            readPosition = newValue;
-            Services.textureManager.UpdatePlayers();
-        };
-        Size.OnValueChanged += (previousValue, newValue) => {
-            readSize = newValue;
-            Services.textureManager.UpdatePlayers();
-        };
-        ColorId.OnValueChanged += (previousValue, newValue) => {
-            Services.textureManager.UpdatePlayers();
-        };
     }
 
     public void Move(int x, int y, bool shift)
@@ -50,9 +53,17 @@ public class Worker : NetworkBehaviour
         // Services.textureManager.UpdateBlobs();
     }
 
-    private void Grow(int x, int y)
+    private void Grow(int x, int y, bool inverse)
     {
-        Size.Value = new Vector2Int(Mathf.Clamp(Size.Value.x + x, 1, maxSize.x), Mathf.Clamp(Size.Value.y + y, 1, maxSize.y));
+        if (inverse)
+        {
+            Position.Value = new Vector2Int(Position.Value.x + x, Position.Value.y + y);
+            Size.Value = new Vector2Int(Mathf.Clamp(Size.Value.x - x, 1, maxSize.x), Mathf.Clamp(Size.Value.y - y, 1, maxSize.y));
+        }
+        else
+        {
+            Size.Value = new Vector2Int(Mathf.Clamp(Size.Value.x + x, 1, maxSize.x), Mathf.Clamp(Size.Value.y + y, 1, maxSize.y));
+        }
         if (Input.GetKey(KeyCode.Space))
             PaintRpc(Position.Value.x, Position.Value.y, Size.Value.x, Size.Value.y, ColorId.Value);
         // Services.textureManager.UpdateBlobs();
@@ -75,7 +86,7 @@ public class Worker : NetworkBehaviour
             }
             // odd = !odd;
         }
-        Services.textureManager.PaintCanvasArea(x0, y0, w, h, colors);
+        Services.textureManager.PaintCanvasArea(x0, y0, w, h, colors, true);
     }
 
     [Rpc(SendTo.Everyone)]
@@ -109,7 +120,7 @@ public class Worker : NetworkBehaviour
                     int w = xEnd - xStart + 1;
                     RectInt rect = new(xStart, y, w, 1);
                     // Debug.Log(rect);
-                    Services.textureManager.PaintCanvasArea(rect.x, rect.y, rect.width, rect.height, colors.ToArray());
+                    Services.textureManager.PaintCanvasArea(rect.x, rect.y, rect.width, rect.height, colors.ToArray(), false);
                 }
                 colors.Clear();
             }
@@ -137,16 +148,39 @@ public class Worker : NetworkBehaviour
                     int yEnd = Mathf.Max(edge, y);
                     int h = yEnd - yStart + 1;
                     RectInt rect = new(x, yStart, 1, h);
-                    Services.textureManager.PaintCanvasArea(rect.x, rect.y, rect.width, rect.height, colors.ToArray());
+                    Services.textureManager.PaintCanvasArea(rect.x, rect.y, rect.width, rect.height, colors.ToArray(), false);
                 }
                 colors.Clear();
             }
         }
+        Services.textureManager.UpdateBlobs();
     }
 
     private void Update() 
     {
         if (!IsOwner) return;
+
+        if (IsHost)
+        {
+            if (Input.GetKeyDown(KeyCode.C))
+            {
+                PaintRpc(0, 0, Services.textureManager.width, Services.textureManager.height, 9);
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            Position.Value = Vector2Int.zero;
+        }
+
+        float h = Input.GetAxisRaw("Horizontal") * Time.deltaTime * 4;
+        float v = Input.GetAxisRaw("Vertical") * Time.deltaTime * 4;
+        hInput = h == 0f ? 0f : hInput + h;
+        vInput = v == 0f ? 0f : vInput + v;
+        int hI = (int)hInput;
+        int vI = (int)vInput;
+        hInput -= hI;
+        vInput -= vI;
         
         if (Input.GetKeyDown(KeyCode.Alpha0)) ColorId.Value = 9;
         else if (Input.GetKeyDown(KeyCode.Alpha1)) ColorId.Value = 0;
@@ -160,28 +194,32 @@ public class Worker : NetworkBehaviour
         else if (Input.GetKeyDown(KeyCode.Alpha9)) ColorId.Value = 8;
         else if (Input.GetKeyDown(KeyCode.Q)) ColorId.Value = 10;
 
+        bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
         if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
         {
             if (Input.GetKeyDown(KeyCode.UpArrow))
             {
-                Grow(0, 1);
+                Grow(0, 1, shift);
             }
             if (Input.GetKeyDown(KeyCode.DownArrow))
             {
-                Grow(0, -1);
+                Grow(0, -1, shift);
             }
             if (Input.GetKeyDown(KeyCode.LeftArrow))
             {
-                Grow(-1, 0);
+                Grow(-1, 0, shift);
             }
             if (Input.GetKeyDown(KeyCode.RightArrow))
             {
-                Grow(1, 0);
+                Grow(1, 0, shift);
+            }
+            if (hI != 0 || vI != 0)
+            {
+                Grow(hI, vI, shift);
             }
         }
         else 
         {
-            bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
             if (Input.GetKeyDown(KeyCode.UpArrow))
             {
                 Move(0, 1, shift);
@@ -197,6 +235,10 @@ public class Worker : NetworkBehaviour
             if (Input.GetKeyDown(KeyCode.RightArrow))
             {
                 Move(1, 0, shift);
+            }
+            if (hI != 0 || vI != 0)
+            {
+                Move(hI, vI, shift);
             }
         }
 
