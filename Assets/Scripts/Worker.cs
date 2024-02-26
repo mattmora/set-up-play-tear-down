@@ -20,7 +20,7 @@ public class Worker : NetworkBehaviour
         Services.textureManager.workers.Add(this);
         if (IsOwner)
         {
-            Position.Value = readPosition;
+            Position.Value = new(Services.textureManager.width / 2, Services.textureManager.height / 2);
             Size.Value = readSize;
             Services.textureManager.localWorker = this;
             Services.textureManager.UpdatePlayers();
@@ -57,8 +57,10 @@ public class Worker : NetworkBehaviour
     {
         if (inverse)
         {
-            Position.Value = new Vector2Int(Position.Value.x + x, Position.Value.y + y);
+            var previous = Size.Value;
             Size.Value = new Vector2Int(Mathf.Clamp(Size.Value.x - x, 1, maxSize.x), Mathf.Clamp(Size.Value.y - y, 1, maxSize.y));
+            var delta = Size.Value - previous;
+            Position.Value = new Vector2Int(Position.Value.x - delta.x, Position.Value.y - delta.y);
         }
         else
         {
@@ -170,7 +172,7 @@ public class Worker : NetworkBehaviour
 
         if (Input.GetKeyDown(KeyCode.R))
         {
-            Position.Value = Vector2Int.zero;
+            Position.Value = new(Services.textureManager.width / 2, Services.textureManager.height / 2);
         }
 
         float h = Input.GetAxisRaw("Horizontal") * Time.deltaTime * 4;
