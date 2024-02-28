@@ -45,6 +45,8 @@ public class TextureManager : MonoBehaviour
 
     public Texture2D image;
 
+    public GameObject projection;
+
     private void Awake() 
     {
         Services.textureManager = this;
@@ -57,8 +59,6 @@ public class TextureManager : MonoBehaviour
         texture = SetupTexture(GetComponent<Renderer>(), (x, y) => transparent);
         overlayTexture = SetupTexture(overlay, (x, y) => transparent);
         playersTexture = SetupTexture(players, (x, y) => transparent);
-
-
 
         canvasCCL.Initialize(texture);
         playersCCL.Initialize(playersTexture);

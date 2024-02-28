@@ -15,7 +15,7 @@ public class Worker : NetworkBehaviour
 
     float hInput, vInput;
 
-    private GameObject projection;
+    
 
     public override void OnNetworkSpawn()
     {
@@ -28,7 +28,6 @@ public class Worker : NetworkBehaviour
             Services.textureManager.UpdatePlayer(this);
 
             Camera.main.GetComponent<Outliner>().enabled = true;
-            projection = GameObject.Find("Projection");
         }
         
         Position.OnValueChanged += (previousValue, newValue) => {
@@ -206,6 +205,7 @@ public class Worker : NetworkBehaviour
 
         if (Input.GetKeyDown(KeyCode.P))
         {
+            var projection = Services.textureManager.projection;
             projection.SetActive(!projection.activeSelf);
         }
         

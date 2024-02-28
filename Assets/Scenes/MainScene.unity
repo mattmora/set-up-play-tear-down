@@ -474,6 +474,10 @@ PrefabInstance:
       propertyPath: image
       value: 
       objectReference: {fileID: 2800000, guid: caa71de9350b297409b8c9f1bcd435b8, type: 3}
+    - target: {fileID: 2008518796367258411, guid: 4510ceab6cc5e2a419b22acae3b4c1fd, type: 3}
+      propertyPath: projection
+      value: 
+      objectReference: {fileID: 534053086}
     - target: {fileID: 3635787567695312980, guid: 4510ceab6cc5e2a419b22acae3b4c1fd, type: 3}
       propertyPath: m_LocalPosition.z
       value: -1
@@ -1126,7 +1130,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &534053087
 Transform:
   m_ObjectHideFlags: 0
