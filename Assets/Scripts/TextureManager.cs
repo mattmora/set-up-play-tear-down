@@ -100,11 +100,11 @@ public class TextureManager : MonoBehaviour
         overlayPixels = new Color32[width * height];
     }
 
-    public void UpdatePlayer(Worker worker)
+    public void UpdatePlayer(Worker w)
     {
         Array.Clear(playersPixels, 0, playersPixels.Length);
         playersCCL.ResetPixels();
-        // foreach (var worker in workers)
+        foreach (var worker in workers)
         {
             var position = worker.Position.Value;
             var size = worker.Size.Value;
