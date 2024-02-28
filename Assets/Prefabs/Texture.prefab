@@ -99,12 +99,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   transparent: {r: 0, g: 0, b: 0, a: 0}
-  width: 80
-  height: 45
+  width: 96
+  height: 54
   texture: {fileID: 0}
   canvasPixels: []
   playersPixels: []
-  scratch: []
   canvasSamples: []
   playersSamples: []
   sequencePrefab: {fileID: 2403162008050399476, guid: 6b3babd56d27cb74796f4999ca5925fc, type: 3}
@@ -113,6 +112,7 @@ MonoBehaviour:
   canvasBlob: 
   playersBlob: 
   localWorker: {fileID: 0}
+  image: {fileID: 2800000, guid: 8a6aafc9cc0c5cb4ea3b8fd806326abd, type: 3}
 --- !u!1 &5675363139471073660
 GameObject:
   m_ObjectHideFlags: 0
@@ -140,7 +140,7 @@ Transform:
   m_GameObject: {fileID: 5675363139471073660}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -223,7 +223,7 @@ Transform:
   m_GameObject: {fileID: 7223403885790120355}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

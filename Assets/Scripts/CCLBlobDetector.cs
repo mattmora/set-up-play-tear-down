@@ -33,7 +33,7 @@ namespace ConnectedComponentLabeling
             {
                 for (int col = 0; col < bmp.width; col++)
                 {
-                    SetPixel(col, row, bmp.GetPixel(col, row).a > 0);
+                    SetPixel(col, row, bmp.GetPixel(col, row).a > 0.8f);
                 }
             }
 

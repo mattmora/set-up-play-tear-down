@@ -24,6 +24,7 @@ public class TextureManager : MonoBehaviour
 
     public Color32[] canvasPixels;
     public Color32[] playersPixels;
+    private Color32[] overlayPixels;
     
     public float[] canvasSamples;
     public float[] playersSamples;
@@ -42,6 +43,8 @@ public class TextureManager : MonoBehaviour
     public Worker localWorker;
     public HashSet<Worker> workers;
 
+    public Texture2D image;
+
     private void Awake() 
     {
         Services.textureManager = this;
@@ -55,9 +58,19 @@ public class TextureManager : MonoBehaviour
         overlayTexture = SetupTexture(overlay, (x, y) => transparent);
         playersTexture = SetupTexture(players, (x, y) => transparent);
 
+
+
         canvasCCL.Initialize(texture);
         playersCCL.Initialize(playersTexture);
         canvasCCL.fallback = playersCCL;
+    }
+
+    private void Update() 
+    {
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            overlay.gameObject.SetActive(!overlay.gameObject.activeSelf);
+        }    
     }
 
     private Texture2D SetupTexture(Renderer r, Func<int, int, Color> color)
@@ -84,38 +97,17 @@ public class TextureManager : MonoBehaviour
         playersPixels = new Color32[width * height];
         canvasSamples = new float[width * height];
         playersSamples = new float[width * height];
+        overlayPixels = new Color32[width * height];
     }
 
-    public void UpdatePlayers()
+    public void UpdatePlayer(Worker worker)
     {
         Array.Clear(playersPixels, 0, playersPixels.Length);
         playersCCL.ResetPixels();
-        foreach (var worker in workers)
+        // foreach (var worker in workers)
         {
             var position = worker.Position.Value;
             var size = worker.Size.Value;
-
-            // int i = 0;
-            // int n = size.x + size.y - 1;
-            // for (int d = 0; d < n; d++)
-            // {
-            //     for (int y = Mathf.Max(0, d + 1 - size.x); y < Mathf.Min(d + 1, size.y); y++)
-            //     {
-            //         int px = d - y + position.x;
-            //         int py = y + position.y;
-            //         if (px < 0 || width <= px || py < 0 || height <= py) 
-            //         {
-            //             i++; 
-            //             continue;
-            //         }
-            //         int p = px + py * width;
-            //         Color c = worker.GetColor((float)i / (size.x * size.y));
-            //         playersPixels[p] = c;
-            //         playersSamples[p] = AudioManager.ColorToSample(c);
-            //         playersCCL.SetPixel(p, c.a > 0);
-            //         i++;
-            //     }
-            // }
             
             float i = 0;
             bool odd = false;
@@ -138,7 +130,7 @@ public class TextureManager : MonoBehaviour
                     Color c = worker.GetColor(i / (size.x * size.y));
                     playersPixels[p] = c;
                     playersSamples[p] = AudioManager.ColorToSample(c);
-                    playersCCL.SetPixel(p, c.a > 0);
+                    playersCCL.SetPixel(p, c.a > 0.8f);
                     i++;
                 }
                 // odd = !odd;
@@ -147,6 +139,37 @@ public class TextureManager : MonoBehaviour
         playersTexture.SetPixels32(playersPixels);
         playersTexture.Apply();
         UpdateBlobs();
+    }
+
+    public void SetGuide(int colorId)
+    {
+        if (colorId > 9)
+        {
+            Array.Clear(overlayPixels, 0, overlayPixels.Length);
+            overlayTexture.SetPixels32(overlayPixels);
+            return;
+        }
+
+        int i = 0;
+        foreach (Color c in image.GetPixels())
+        {
+            Color p = Services.paletteManager.colors[colorId];
+            if (c.Equals(p))
+            {
+                Color.RGBToHSV(p, out float H, out float S, out float V);
+                Color g = Color.HSVToRGB(H, S, V < 0.5 ? 1 - V : V);
+                g.a = 0.5f;
+                overlayPixels[i] = g;
+            }
+            else
+            {
+                overlayPixels[i] = transparent;
+            }
+            i++;
+        }
+
+        overlayTexture.SetPixels32(overlayPixels);
+        overlayTexture.Apply();
     }
 
     public void PaintCanvasArea(int x0, int y0, int w, int h, Color32[] colors, bool updateBlobs)
@@ -177,7 +200,7 @@ public class TextureManager : MonoBehaviour
                 int p = x + y * width;
                 canvasPixels[p] = colors[i];
                 canvasSamples[p] = AudioManager.ColorToSample(colors[i]);
-                canvasCCL.SetPixel(p, canvasPixels[p].a > 0);
+                canvasCCL.SetPixel(p, canvasPixels[p].a > 200);
                 clampedColors[c] = colors[i];
                 i++;
                 c++;

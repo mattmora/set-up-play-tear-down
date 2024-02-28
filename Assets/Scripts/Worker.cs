@@ -15,6 +15,8 @@ public class Worker : NetworkBehaviour
 
     float hInput, vInput;
 
+    private GameObject projection;
+
     public override void OnNetworkSpawn()
     {
         Services.textureManager.workers.Add(this);
@@ -23,20 +25,24 @@ public class Worker : NetworkBehaviour
             Position.Value = new(Services.textureManager.width / 2, Services.textureManager.height / 2);
             Size.Value = readSize;
             Services.textureManager.localWorker = this;
-            Services.textureManager.UpdatePlayers();
+            Services.textureManager.UpdatePlayer(this);
 
-            Position.OnValueChanged += (previousValue, newValue) => {
-                readPosition = newValue;
-                Services.textureManager.UpdatePlayers();
-            };
-            Size.OnValueChanged += (previousValue, newValue) => {
-                readSize = newValue;
-                Services.textureManager.UpdatePlayers();
-            };
-            ColorId.OnValueChanged += (previousValue, newValue) => {
-                Services.textureManager.UpdatePlayers();
-            };
+            Camera.main.GetComponent<Outliner>().enabled = true;
+            projection = GameObject.Find("Projection");
         }
+        
+        Position.OnValueChanged += (previousValue, newValue) => {
+            readPosition = newValue;
+            Services.textureManager.UpdatePlayer(this);
+        };
+        Size.OnValueChanged += (previousValue, newValue) => {
+            readSize = newValue;
+            Services.textureManager.UpdatePlayer(this);
+        };
+        ColorId.OnValueChanged += (previousValue, newValue) => {
+             if (IsOwner) Services.textureManager.SetGuide(newValue);
+            Services.textureManager.UpdatePlayer(this);
+        };
     }
 
     public void Move(int x, int y, bool shift)
@@ -114,7 +120,11 @@ public class Worker : NetworkBehaviour
                     if (Services.textureManager.canvasPixels[p].a == 0) break;
                     colors.Add(Services.textureManager.canvasPixels[p]);
                 }
-                if (dir < 0) colors.Add(Services.textureManager.transparent);
+                if (dir < 0) 
+                {
+                    colors.Reverse();
+                    colors.Add(Services.textureManager.transparent);
+                }
                 if (x != edge)
                 {
                     int xStart = Mathf.Min(edge, x);
@@ -143,7 +153,11 @@ public class Worker : NetworkBehaviour
                     if (Services.textureManager.canvasPixels[p].a == 0) break;
                     colors.Add(Services.textureManager.canvasPixels[p]);
                 }
-                if (dir < 0) colors.Add(Services.textureManager.transparent);
+                if (dir < 0) 
+                {
+                    colors.Reverse();
+                    colors.Add(Services.textureManager.transparent);
+                }
                 if (y != edge)
                 {
                     int yStart =  Mathf.Min(edge, y);
@@ -183,6 +197,17 @@ public class Worker : NetworkBehaviour
         int vI = (int)vInput;
         hInput -= hI;
         vInput -= vI;
+
+        if (Input.GetKeyDown(KeyCode.O)) 
+        {
+            var outliner = Camera.main.GetComponent<Outliner>();
+            outliner.enabled = !outliner.enabled;
+        }
+
+        if (Input.GetKeyDown(KeyCode.P))
+        {
+            projection.SetActive(!projection.activeSelf);
+        }
         
         if (Input.GetKeyDown(KeyCode.Alpha0)) ColorId.Value = 9;
         else if (Input.GetKeyDown(KeyCode.Alpha1)) ColorId.Value = 0;

@@ -67,7 +67,7 @@ public class AudioManager : MonoBehaviour
                 canvasProgress %= canvasBlob.Length;
                 int canvasIndex = canvasBlob[canvasProgress++];
                 Color playerPixel = texture.playersPixels[canvasIndex];
-                float s = playerPixel.a > 0f ? texture.playersSamples[canvasIndex] : texture.canvasSamples[canvasIndex];
+                float s = playerPixel.a > 0.8f ? texture.playersSamples[canvasIndex] : texture.canvasSamples[canvasIndex];
                 sample += s * 0.5f;
             }
 
