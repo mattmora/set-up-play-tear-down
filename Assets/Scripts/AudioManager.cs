@@ -107,7 +107,7 @@ public class AudioManager : MonoBehaviour
 
     public static float ColorToSample(Color c) 
     {
-        if (c.a == 0) return 0f;
+        if (c.a < 0.9) return 0f;
         Color.RGBToHSV(c, out float H, out float S, out float V);
         return Mathf.Cos(H * 2 * Mathf.PI) * S;
         // float dcOffset = Mathf.Min(c.r, c.g, c.b);

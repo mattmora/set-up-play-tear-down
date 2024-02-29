@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using ConnectedComponentLabeling;
 using Unity.Netcode;
 using UnityEngine;
@@ -41,7 +42,7 @@ public class TextureManager : MonoBehaviour
     public List<int> playersBlob = new();
 
     public Worker localWorker;
-    public HashSet<Worker> workers;
+    public List<Worker> workers;
 
     public Texture2D image;
 
@@ -65,13 +66,13 @@ public class TextureManager : MonoBehaviour
         canvasCCL.fallback = playersCCL;
     }
 
-    private void Update() 
-    {
-        if (Input.GetKeyDown(KeyCode.G))
-        {
-            overlay.gameObject.SetActive(!overlay.gameObject.activeSelf);
-        }    
-    }
+    // private void Update() 
+    // {
+    //     if (Input.GetKeyDown(KeyCode.G))
+    //     {
+    //         overlay.gameObject.SetActive(!overlay.gameObject.activeSelf);
+    //     }    
+    // }
 
     private Texture2D SetupTexture(Renderer r, Func<int, int, Color> color)
     {
@@ -104,7 +105,8 @@ public class TextureManager : MonoBehaviour
     {
         Array.Clear(playersPixels, 0, playersPixels.Length);
         playersCCL.ResetPixels();
-        foreach (var worker in workers)
+        var sorted = workers.OrderBy((worker) => worker.ColorId.Value == 9 ? 100 : worker.ColorId.Value);
+        foreach (var worker in sorted)
         {
             var position = worker.Position.Value;
             var size = worker.Size.Value;

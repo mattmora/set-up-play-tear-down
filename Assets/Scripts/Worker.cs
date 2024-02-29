@@ -39,7 +39,7 @@ public class Worker : NetworkBehaviour
             Services.textureManager.UpdatePlayer(this);
         };
         ColorId.OnValueChanged += (previousValue, newValue) => {
-             if (IsOwner) Services.textureManager.SetGuide(newValue);
+            // if (IsOwner) Services.textureManager.SetGuide(newValue);
             Services.textureManager.UpdatePlayer(this);
         };
     }
@@ -116,7 +116,7 @@ public class Worker : NetworkBehaviour
                 for (x = edge; x >= 0 && x < end; x += inc)
                 {
                     int p = x + y * width;
-                    if (Services.textureManager.canvasPixels[p].a == 0) break;
+                    if (Services.textureManager.canvasPixels[p].a < 0.8f) break;
                     colors.Add(Services.textureManager.canvasPixels[p]);
                 }
                 if (dir < 0) 
@@ -149,7 +149,7 @@ public class Worker : NetworkBehaviour
                 for (y = edge; y >= 0 && y < end; y += inc)
                 {
                     int p = x + y * width;
-                    if (Services.textureManager.canvasPixels[p].a == 0) break;
+                    if (Services.textureManager.canvasPixels[p].a < 0.8f) break;
                     colors.Add(Services.textureManager.canvasPixels[p]);
                 }
                 if (dir < 0) 
@@ -203,11 +203,11 @@ public class Worker : NetworkBehaviour
             outliner.enabled = !outliner.enabled;
         }
 
-        if (Input.GetKeyDown(KeyCode.P))
-        {
-            var projection = Services.textureManager.projection;
-            projection.SetActive(!projection.activeSelf);
-        }
+        // if (Input.GetKeyDown(KeyCode.P))
+        // {
+        //     var projection = Services.textureManager.projection;
+        //     projection.SetActive(!projection.activeSelf);
+        // }
         
         if (Input.GetKeyDown(KeyCode.Alpha0)) ColorId.Value = 9;
         else if (Input.GetKeyDown(KeyCode.Alpha1)) ColorId.Value = 0;
