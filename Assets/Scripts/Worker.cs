@@ -116,7 +116,7 @@ public class Worker : NetworkBehaviour
                 for (x = edge; x >= 0 && x < end; x += inc)
                 {
                     int p = x + y * width;
-                    if (Services.textureManager.canvasPixels[p].a < 0.8f) break;
+                    if (Services.textureManager.canvasPixels[p].a < 200) break;
                     colors.Add(Services.textureManager.canvasPixels[p]);
                 }
                 if (dir < 0) 
@@ -149,7 +149,7 @@ public class Worker : NetworkBehaviour
                 for (y = edge; y >= 0 && y < end; y += inc)
                 {
                     int p = x + y * width;
-                    if (Services.textureManager.canvasPixels[p].a < 0.8f) break;
+                    if (Services.textureManager.canvasPixels[p].a < 200) break;
                     colors.Add(Services.textureManager.canvasPixels[p]);
                 }
                 if (dir < 0) 
